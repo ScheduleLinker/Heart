@@ -1,4 +1,4 @@
-from ics_upload.ics_upload import ics_router
+from backend.ics_upload.ics_upload import ics_router
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 

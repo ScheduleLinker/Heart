@@ -1,5 +1,5 @@
 from fastapi import APIRouter, File, UploadFile
-from ics_upload_controller import *
+from backend.ics_upload.ics_upload_controller import *
 from starlette.responses import JSONResponse
 
 """
