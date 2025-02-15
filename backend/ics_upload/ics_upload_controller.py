@@ -3,14 +3,17 @@ from backend.models.enums import *
 from ics import Calendar
 from pydantic import BaseModel
 
+"""
+This file defines the FastAPI router and endpoint for handling ICS file uploads.
+"""
+
 class UploadResponse(BaseModel):
-  uid: str
-  message: str
-  status: str
+    uid: str
+    message: str
+    status: str
 
 
 class EventDetails(BaseModel):
-    uid: str
     summary: str
     description: Optional[str] = None
     start: str
@@ -44,10 +47,24 @@ def validate_ics_upload(ics_file: str) -> UploadResponse:
         )
 
 def parse_ics(ics_file: str):
-
-
-  reurn
-
+    """
+    Parses an ICS file and extracts event details.
+    """
+    try:
+        calendar = Calendar(ics_file)
+        events = [
+            EventDetails(
+                summary=event.name,
+                description=event.description,
+                start=str(event.begin),
+                end=str(event.end),
+                location=event.location
+            )
+            for event in calendar.events
+        ]
+        return events
+    except Exception as e:
+        return f"Error parsing ICS file: {str(e)}"
 
 
 def check_ics_size(ics_file: bytes) -> UploadResponse:

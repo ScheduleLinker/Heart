@@ -1,5 +1,8 @@
 from enum import Enum
 
+"""
+This file defines enumerations (Enum classes) for standardizing status codes and messages.S
+"""
 
 class Status(Enum):
     Success = "Success"
