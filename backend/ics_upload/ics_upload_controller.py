@@ -23,24 +23,44 @@ class EventDetails(BaseModel):
     location: Optional[str] = None
 
 # Function to parse the ICS file
-def parse_ics(ics_file: bytes):
+def parse_ics(ics_file: bytes) -> str:
+    """
+    Parses an ICS file and extracts event details.
+    Handles multiple calendars and stores events in TempStorage.
+    """
     try:
-        ics_file_bytes = BytesIO(ics_file) 
-        calendar = Calendar(ics_file_bytes.read())  # Read the content
-        temp_storage = TempStorage()
-        
-        ics_uid = temp_storage.create({})  # Generate UID once
-        events = [
-            EventDetails(
-                summary=event.name,
-                description=event.description,
-                start=str(event.begin),
-                end=str(event.end),
-                location=event.location
-            )
-            for event in calendar.events
-        ]
+        temp_storage = TempStorage()  # Initialize storage
+
+        # Convert bytes to string
+        ics_content = ics_file.decode("utf-8")
+
+        # Handle multiple calendars
+        calendars = Calendar.parse_multiple(ics_content)
+        if not calendars:
+            return "No valid calendars found in ICS file."
+
+        all_events = []
+
+        for calendar in calendars:
+            events = [
+                {
+                    "summary": event.name,
+                    "description": event.description,
+                    "start": str(event.begin),
+                    "end": str(event.end),
+                    "location": event.location
+                }
+                for event in calendar.events
+            ]
+            all_events.extend(events)
+
+        if not all_events:
+            return "No events found in ICS file."
+
+        # Store events in TempStorage and return the generated UID
+        ics_uid = temp_storage.create({"events": all_events})
         return ics_uid
+
     except Exception as e:
         return f"Error parsing ICS file: {str(e)}"
 

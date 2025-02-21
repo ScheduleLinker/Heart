@@ -22,7 +22,7 @@ async def ics_upload(ics_file: UploadFile = File(...)) -> UploadResponse:
   file_content = await ics_file.read()
 
   # Check file size
-  max_file_size = 2 *1024 * 1024
+  max_file_size = 5 *1024 * 1024 # 5MB limit
   calendar_file = await ics_file.read()
   if len(calendar_file) > max_file_size:
       return UploadResponse(message=IcsUploadMessages.TooLarge, status=Status.Error)
