@@ -1,6 +1,6 @@
 from fastapi import APIRouter, File, UploadFile
 from backend.ics_upload.ics_upload_controller import *
-from starlette.responses import JSONResponse
+#from starlette.responses import JSONResponse
 
 """
 This file contains the logic for handling ICS (iCalendar) file uploads, including validation, parsing, and size checks.
@@ -10,10 +10,11 @@ This file contains the logic for handling ICS (iCalendar) file uploads, includin
 ics_router = APIRouter()
 
 
-@ics_router.post('api/ics-upload')
+@ics_router.post('/api/ics-upload')
 async def ics_upload(ics_file: UploadFile = File(...)) -> UploadResponse:
-  if ics_file.content_type != "text/calender":
-    return  JSONResponse(
+  print(f"Received file with content_type: {ics_file.content_type}")  # Debugging
+  if ics_file.content_type != "text/calendar":
+    return  UploadResponse(
       content={"message": IcsUploadMessages.NotAIcs.value},
       status_code=400,
     )
@@ -21,14 +22,12 @@ async def ics_upload(ics_file: UploadFile = File(...)) -> UploadResponse:
   file_content = await ics_file.read()
 
   # Check file size
-  size_check = check_ics_size(file_content)
-  if size_check.status == Status.Error:
-      return JSONResponse(content=size_check.dict(), status_code=400)
+  max_file_size = 2 *1024 * 1024
+  calendar_file = await ics_file.read()
+  if len(calendar_file) > max_file_size:
+      return UploadResponse(message=IcsUploadMessages.TooLarge, status=Status.Error)
 
-  # Validate ICS content
-  validation_response = validate_ics_upload(file_content.decode("utf-8"))
-  if validation_response.status == Status.Error:
-      return JSONResponse(content=validation_response.dict(), status_code=400)
+  parse_ics_uid = parse_ics(calendar_file)
+  return UploadResponse(uid=parse_ics_uid, message=IcsUploadMessages.IcsUploadSuccess, status=Status.Success)
 
-  return JSONResponse(content=validation_response.dict(), status_code=200)
   
