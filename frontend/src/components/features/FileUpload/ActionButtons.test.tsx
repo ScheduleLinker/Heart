@@ -1,3 +1,9 @@
+/** 
+ * A test for ActionButton component
+ * test if the children FileUpload button and CreateButton is in the dom
+*/
+
+
 import { render, screen } from '@testing-library/react';
 import ActionButtons from './ActionButtons';
 import { describe, it, expect } from 'vitest';

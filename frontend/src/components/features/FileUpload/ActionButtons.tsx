@@ -1,3 +1,11 @@
+/**
+ * A parent component hat hosts file upload button and createButton
+ * 
+ * @component 
+ * @param {null} - no props for now
+ */
+
+
 import FileUploadButton from "./FileUploadButton";
 import CreateButton from "./CreateButton";
 import GlobalDragDrop from "../DragandDrop/GlobalDragDrop";

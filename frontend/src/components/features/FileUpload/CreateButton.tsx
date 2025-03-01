@@ -1,3 +1,12 @@
+/**
+ * Create Button component
+ * once the user's clicked on the create button it initializes a new workspace where they can make edits to their calendar or day
+ * @component
+ * @param {null} 
+ * @returns {JSX.Element} A button element with the style and gradient colours
+ */
+
+
 import { useState } from 'react';
 import { Plus } from 'lucide-react';
 

@@ -1,3 +1,12 @@
+/**
+ * A test for create button component (using vitest)
+ * @test 
+ *tests if the button is in the dom
+ *tests if the button from inital state (CREATE) to (INITIALIZING...)
+ *tests if the button gets disabled during initializing a new workspace
+ */
+
+
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import CreateButton from './CreateButton'; // Adjust path if needed
 import { describe, it, expect } from 'vitest';
