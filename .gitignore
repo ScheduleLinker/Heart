@@ -3,3 +3,6 @@ venv
 
 
 storage.json
+
+.DS_Store
+node_modules/
