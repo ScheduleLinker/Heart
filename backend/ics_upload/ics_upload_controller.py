@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 from backend.models.enums import *
 from icalendar import Calendar
-from typing import Optional, List
+from typing import Optional, List, Tuple
 from backend.models.temp_storage import TempStorage
 from io import BytesIO
 import json
@@ -25,7 +25,7 @@ class EventDetails(BaseModel):
     location: Optional[str] = None
 
 # Function to parse the ICS file
-def parse_ics(ics_file: bytes) -> str:
+def parse_ics(ics_file: bytes) -> Tuple[str, str]:
     """
     Parses an ICS file and extracts event details.
     Handles multiple calendars and stores events in TempStorage.

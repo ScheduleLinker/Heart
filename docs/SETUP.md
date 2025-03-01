@@ -19,5 +19,7 @@
 }
 ```
 
+- A local `storage.json` file is generated to store the parsed contents
+
 ![Screenshot from 2025-02-28 21-54-03](https://github.com/user-attachments/assets/31c26de6-e156-4e25-8057-efe9bc03fcf8)
 
