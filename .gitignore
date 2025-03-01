@@ -1,2 +1,4 @@
 #ignore the virtual environment folder
 venv
+.DS_Store
+node_modules/
