@@ -1,3 +1,8 @@
+/**
+ * A global theme component
+ * the look and feel of the app are derived from this component
+ */
+
 import { ReactNode } from 'react';
 type RootLayoutProps = {
   children: ReactNode;
