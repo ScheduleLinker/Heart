@@ -1,9 +1,10 @@
 from pydantic import BaseModel
 from backend.models.enums import *
-from ics import Calendar
-from typing import Optional
+from icalendar import Calendar
+from typing import Optional, List
 from backend.models.temp_storage import TempStorage
 from io import BytesIO
+import json
 
 """
 This file defines the FastAPI router and endpoint for handling ICS file uploads.
@@ -13,6 +14,7 @@ class UploadResponse(BaseModel):
     uid: str
     message: str
     status: str
+    json: str
 
 
 class EventDetails(BaseModel):
@@ -29,97 +31,31 @@ def parse_ics(ics_file: bytes) -> str:
     Handles multiple calendars and stores events in TempStorage.
     """
     try:
-        temp_storage = TempStorage()  # Initialize storage
+        # Read ICS content from bytes
+        calendar = Calendar.from_ical(BytesIO(ics_file).read())
 
-        # Convert bytes to string
-        ics_content = ics_file.decode("utf-8")
+        events: List[dict] = []
+        for component in calendar.walk():
+            if component.name == "VEVENT":
+                event = EventDetails(
+                    summary=str(component.get("SUMMARY", "No Title")),
+                    description=str(component.get("DESCRIPTION", "")).strip(),
+                    start=component.get("DTSTART").dt.isoformat() if component.get("DTSTART") else "N/A",
+                    end=component.get("DTEND").dt.isoformat() if component.get("DTEND") else "N/A",
+                    location=str(component.get("LOCATION", "")).strip(),
+                )
+                events.append(event.model_dump())
 
-        # Handle multiple calendars
-        calendars = Calendar.parse_multiple(ics_content)
-        if not calendars:
-            return "No valid calendars found in ICS file."
-
-        all_events = []
-
-        for calendar in calendars:
-            events = [
-                {
-                    "summary": event.name,
-                    "description": event.description,
-                    "start": str(event.begin),
-                    "end": str(event.end),
-                    "location": event.location
-                }
-                for event in calendar.events
-            ]
-            all_events.extend(events)
-
-        if not all_events:
+        if not events:
             return "No events found in ICS file."
 
-        # Store events in TempStorage and return the generated UID
-        ics_uid = temp_storage.create({"events": all_events})
-        return ics_uid
+        #convert ics to json
+        ics_json = json.dumps(events, indent=4)
+
+        # Store the parsed events in TempStorage
+        temp_storage = TempStorage()  # Initialize storage
+        ics_uid = temp_storage.create({"events": events})
+        return ics_uid, ics_json
 
     except Exception as e:
         return f"Error parsing ICS file: {str(e)}"
-
-
-
-
-
-
-
-""""
-def check_ics_size(ics_file: bytes) -> UploadResponse:
-    
-    Checks if the ICS file size is within the allowed limit (5MB).
-
-    Args:
-        ics_file (bytes): The content of the ICS file as bytes.
-
-    Returns:
-        UploadResponse: A response indicating the size check status.
-    
-    max_file_size = 5 * 1024 * 1024  # 5MB limit
-    if len(ics_file) > max_file_size:
-        return UploadResponse(
-            uid="size_check_uid",  # Replace with a unique ID if needed
-            message=IcsUploadMessages.IcsFileTooLarge,
-            status=Status.Error
-        )
-    return UploadResponse(
-        uid="size_check_uid",  # Replace with a unique ID if needed
-        message="ICS file size is within the allowed limit.",
-        status=Status.Success
-    )
-"""
-
-
-
-"""
-def validate_ics_upload(ics_file: str) -> UploadResponse:
-    
-    Validates the uploaded ICS file.
-
-    Args:
-        ics_file (str): The content of the ICS file as a string.
-
-    Returns:
-        UploadResponse: A response indicating the validation status.
-    
-    try:
-        # Attempt to parse the ICS file
-        parse_ics(ics_file)
-        return UploadResponse(
-            uid="validation_uid",  # Replace with a unique ID if needed
-            message=IcsUploadMessages.IcsUploadSuccess,
-            status=Status.Success
-        )
-    except Exception as e:
-        return UploadResponse(
-            uid="validation_uid",  # Replace with a unique ID if needed
-            message=f"{IcsUploadMessages.IcsUploadError}: {str(e)}",
-            status=Status.Error
-        )
-"""
