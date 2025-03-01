@@ -8,3 +8,16 @@
 4. In your cli, you should see <b>(venv)</b> at the beginning of the prompt.
 5. Then, run `pip install -r requirements.txt`. This will install all the packages necessary to run the project.
 6. To run the API, in your console type in `fastapi dev backend/app.py`. This should enable the FastAPI endpoints on port 8000. To see the swagger with all the explanation head to <b>localhost:8000/docs</b>.
+### EndPoint:
+- Response 200: 
+```
+{
+  "uid": "string",
+  "message": "string",
+  "status": "string",
+  "json": "string"
+}
+```
+
+![Screenshot from 2025-02-28 21-54-03](https://github.com/user-attachments/assets/31c26de6-e156-4e25-8057-efe9bc03fcf8)
+
