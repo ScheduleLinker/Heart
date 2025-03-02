@@ -31,7 +31,7 @@ jobs:
 
     - name: Run Backend Tests
       run: |
-        pytest Heart/backend/tests/
+        pytest backend/tests/
 
   frontend-tests:
     runs-on: ubuntu-latest
