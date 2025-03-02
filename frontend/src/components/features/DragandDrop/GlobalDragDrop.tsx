@@ -56,14 +56,11 @@ export default function GlobalDragDrop({
         const fileType = file.type;
         const fileName = file.name.toLowerCase();
         
-        return fileType === 'application/pdf' || 
-               fileName.endsWith('.pdf') ||
-               fileType === 'text/calendar' || 
-               fileName.endsWith('.ics');
+        return fileType === 'text/calendar' || fileName.endsWith('.ics');
       });
       
       if (validFiles.length === 0) {
-        setError('Only .pdf and .ics files are allowed');
+        setError('Only .ics files are allowed');
         setTimeout(() => setError(null), 3000); // Clear error after 3 seconds
         return;
       }
@@ -100,7 +97,7 @@ export default function GlobalDragDrop({
     <>
       {isDragging && (
         <div className={`fixed inset-0 z-50 flex items-center justify-center pointer-events-none ${overlayClassName}`}>
-          <div className="text-white text-xl font-medium">{dropPromptText} (.pdf or .ics only)</div>
+          <div className="text-white text-xl font-medium">{dropPromptText} (.ics only)</div>
         </div>
       )}
       
