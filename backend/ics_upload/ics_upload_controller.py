@@ -1,3 +1,4 @@
+from typing import Optional
 from pydantic import BaseModel
 from backend.models.enums import *
 from ics import Calendar
