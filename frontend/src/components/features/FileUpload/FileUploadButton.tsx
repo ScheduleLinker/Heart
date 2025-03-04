@@ -1,6 +1,28 @@
 import { ChangeEvent, useState } from 'react';
 import { Upload } from 'lucide-react';
 
+
+const FileUploadHandler = async (file: File) => {
+  const API_URL = import.meta.env.VITE_BACKEND_URL;
+
+
+  const formData = new FormData();
+  formData.append("file", file);
+
+  try {
+    const response = await fetch(`${API_URL}/api/ics-upload/`, {
+      method: "POST",
+      body: formData,
+    });
+
+    const data = response.json();
+    alert(`File uploaded! ${data}`);
+  }catch(e) {
+    console.error("Upload Error: ",e);
+  }
+  
+
+}
 const FileUploadButton = () => {
   const [isUploading, setIsUploading] = useState(false);
 
@@ -15,24 +37,8 @@ const FileUploadButton = () => {
 
     setIsUploading(true);
     
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-
-      // Simulated API call
-      const response = await new Promise((resolve) => 
-        setTimeout(() => resolve({ 
-          success: true, 
-          filename: file.name 
-        }), 1000)
-      );
-
-      console.log('Upload successful:', response);
-    } catch (error) {
-      console.error('Upload error:', error);
-    } finally {
-      setIsUploading(false);
-    }
+    // handle the file upload
+    FileUploadHandler(file);
   };
 
   return (
