@@ -1,3 +1,11 @@
+/**
+ * A file upload button component
+ * this components handles file upload, file selection and ensure the file is an ics file
+ * 
+ * @param
+ * @returns {JSX.Element}
+ * @style gradient, colours, text are all in this file
+ */
 import { ChangeEvent, useState } from 'react';
 import { Upload } from 'lucide-react';
 

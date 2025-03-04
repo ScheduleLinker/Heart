@@ -1,3 +1,14 @@
+/**
+ * A simple fileupload button test
+ * 
+ * @test
+ * tests if button rendered correctly
+ * tests if button transitions from (upload) to (processing)
+ * test if file uploaded is an .ics file
+ * test if the incorrect file type is rejected.
+ */
+
+
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import FileUploadButton from './FileUploadButton'; // Adjust path if needed
 import { describe, it, expect, vi } from 'vitest';
