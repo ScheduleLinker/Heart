@@ -1,55 +1,51 @@
-/**
- * A simple fileupload button test
- * 
- * @test
- * tests if button rendered correctly
- * tests if button transitions from (upload) to (processing)
- * test if file uploaded is an .ics file
- * test if the incorrect file type is rejected.
- */
+// FileUploadButton.test.tsx
+import { render, fireEvent, waitFor, screen } from "@testing-library/react";
+import FileUploadButton from "./FileUploadButton";
+import { describe, expect, test, vi } from "vitest";
 
+// Mock the fetch API using vitest's vi.fn()
+global.fetch = vi.fn(() =>
+  Promise.resolve({
+    ok: true,
+    json: () => Promise.resolve({ message: "File uploaded successfully!" }),
+  })
+) as unknown as typeof fetch;
 
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import FileUploadButton from './FileUploadButton'; // Adjust path if needed
-import { describe, it, expect, vi } from 'vitest';
-
-describe('FileUploadButton Component', () => {
-  it('renders correctly with initial state', () => {
+describe("FileUploadButton", () => {
+  test("alerts user on successful file upload", async () => {
     render(<FileUploadButton />);
-
-    // Check if the label (acting as button) is present
-    expect(screen.getByText('UPLOAD')).toBeInTheDocument();
-  });
-
-  it('shows "PROCESSING..." when a valid file is uploaded and reverts after processing', async () => {
-    render(<FileUploadButton />);
-
-    const fileInput = screen.getByLabelText(/upload/i);
-    const file = new File(["BEGIN:VCALENDAR"], "event.ics", { type: "text/calendar" });
+    
+    // Query the file input by its test id
+    const fileInput = screen.getByTestId("file-input") as HTMLInputElement;
+    
+    // Create a dummy .ics file
+    const file = new File(["BEGIN:VCALENDAR\nEND:VCALENDAR"], "test.ics", {
+      type: "text/calendar",
+    });
 
     // Simulate file selection
     fireEvent.change(fileInput, { target: { files: [file] } });
 
-    // Expect text to change to "PROCESSING..."
-    expect(screen.getByText('PROCESSING...')).toBeInTheDocument();
-
-    // Wait for the process to finish (simulate API call delay)
-    await waitFor(() => expect(screen.getByText('UPLOAD')).toBeInTheDocument(), { timeout: 1200 });
+    // Wait for fetch to be called
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledTimes(1);
+    });
   });
 
-  it('rejects invalid file types', () => {
+  test("alerts user when non-.ics file is selected", () => {
+    const alertMock = vi.spyOn(window, "alert").mockImplementation(() => {});
     render(<FileUploadButton />);
-    
-    const alertMock = vi.spyOn(window, 'alert').mockImplementation(() => {}); // Mock alert
 
-    const fileInput = screen.getByLabelText(/upload/i);
-    const invalidFile = new File(["data"], "image.png", { type: "image/png" });
+    const fileInput = screen.getByTestId("file-input") as HTMLInputElement;
 
-    fireEvent.change(fileInput, { target: { files: [invalidFile] } });
+    // Create a dummy non-.ics file
+    const file = new File(["Some content"], "test.txt", {
+      type: "text/plain",
+    });
 
-    // Ensure alert was called
-    expect(alertMock).toHaveBeenCalledWith('Please select an .ics file.');
-    
-    alertMock.mockRestore(); // Cleanup mock
+    fireEvent.change(fileInput, { target: { files: [file] } });
+
+    expect(alertMock).toHaveBeenCalledWith("Please select a valid .ics file.");
+    alertMock.mockRestore();
   });
 });

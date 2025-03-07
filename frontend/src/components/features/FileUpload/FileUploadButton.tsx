@@ -1,36 +1,41 @@
 /**
- * A file upload button component
- * this components handles file upload, file selection and ensure the file is an ics file
- * 
- * @param
+ * A file upload button component.
+ * This component handles file selection, ensures it's an .ics file, and uploads it.
+ *
  * @returns {JSX.Element}
- * @style gradient, colours, text are all in this file
  */
-import { ChangeEvent, useState } from 'react';
-import { Upload } from 'lucide-react';
+import { ChangeEvent, useState } from "react";
+import { Upload } from "lucide-react";
 
-
-const FileUploadHandler = async (file: File) => {
+// Function to handle the file upload
+const FileUploadHandler = async (file: File, setIsUploading: (value: boolean) => void) => {
   const API_URL = import.meta.env.VITE_BACKEND_URL;
-
-
+  
   const formData = new FormData();
-  formData.append("file", file);
+  formData.append("ics_file", file);
 
   try {
-    const response = await fetch(`${API_URL}/api/ics-upload/`, {
+    const response = await fetch(`${API_URL}/api/ics-upload`, { 
       method: "POST",
       body: formData,
     });
 
-    const data = response.json();
-    alert(`File uploaded! ${data}`);
-  }catch(e) {
-    console.error("Upload Error: ",e);
-  }
-  
+    if (!response.ok) {
+      throw new Error(`Upload failed with status ${response.status}`);
+    }
 
-}
+    const data = await response.json();
+    console.log(data);
+    alert(`${data.message}`);
+  } catch (error) {
+    console.error("Upload Error: ", error);
+    alert("Failed to upload the file. Please try again.");
+  } finally {
+    setIsUploading(false); // Ensure UI resets after upload attempt
+  }
+};
+
+// File Upload Button Component
 const FileUploadButton = () => {
   const [isUploading, setIsUploading] = useState(false);
 
@@ -38,55 +43,55 @@ const FileUploadButton = () => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    if (!file.name.endsWith('.ics')) {
-      alert('Please select an .ics file.');
+    if (!file.name.endsWith(".ics")) {
+      alert("Please select a valid .ics file.");
       return;
     }
 
     setIsUploading(true);
-    
-    // handle the file upload
-    FileUploadHandler(file);
+    await FileUploadHandler(file, setIsUploading);
   };
 
   return (
     <label
-  htmlFor="file-upload"
-  className="w-64 h-64 flex flex-col items-center justify-center 
-           backdrop-blur-xl border-2 border-cyan-500/30
-           rounded-3xl cursor-pointer hover:border-transparent
-           transition-all duration-300 group relative 
-           bg-gradient-to-br from-slate-800/50 via-slate-900/60 to-slate-800/50
-           hover:from-yellow-900/30 hover:via-slate-900/60 hover:to-cyan-900/30
-           overflow-hidden"
->
-  {/* Animated gradient overlay */}
-  <div className="absolute inset-0 bg-gradient-to-br from-yellow-400/20 via-transparent to-cyan-400/20 
-                opacity-0 group-hover:opacity-100 transition-opacity duration-500 mix-blend-overlay" />
+      htmlFor="file-upload"
+      className="w-64 h-64 flex flex-col items-center justify-center 
+               backdrop-blur-xl border-2 border-cyan-500/30
+               rounded-3xl cursor-pointer hover:border-transparent
+               transition-all duration-300 group relative 
+               bg-gradient-to-br from-slate-800/50 via-slate-900/60 to-slate-800/50
+               hover:from-yellow-900/30 hover:via-slate-900/60 hover:to-cyan-900/30
+               overflow-hidden"
+    >
+      {/* Animated gradient overlay */}
+      <div className="absolute inset-0 bg-gradient-to-br from-yellow-400/20 via-transparent to-cyan-400/20 
+                      opacity-0 group-hover:opacity-100 transition-opacity duration-500 mix-blend-overlay" />
 
-  {/* Upload state overlay */}
-  <div className={`absolute inset-0 bg-cyan-500/10 rounded-3xl ${isUploading ? 'animate-pulse' : 'hidden'}`} />
-  
-  {/* Content container */}
-  <div className="relative z-10 flex flex-col items-center space-y-4">
-    <Upload className={`w-20 h-20 text-yellow-400 ${
-      isUploading ? 'animate-bounce' : 'group-hover:scale-110 group-hover:text-cyan-300'
-    } transition-transform duration-300`} />
-    
-    <span className="text-xl font-bold bg-gradient-to-r from-yellow-400 to-cyan-400 bg-clip-text text-transparent">
-      {isUploading ? 'PROCESSING...' : 'UPLOAD'}
-    </span>
-  </div>
+      {/* Upload state overlay */}
+      <div className={`absolute inset-0 bg-cyan-500/10 rounded-3xl ${isUploading ? "animate-pulse" : "hidden"}`} />
 
-  <input 
-    id="file-upload" 
-    type="file" 
-    className="hidden" 
-    accept=".ics"
-    onChange={handleFileChange}
-    disabled={isUploading}
-  />
-</label>
+      {/* Content container */}
+      <div className="relative z-10 flex flex-col items-center space-y-4">
+        <Upload
+          className={`w-20 h-20 text-yellow-400 ${
+            isUploading ? "animate-bounce" : "group-hover:scale-110 group-hover:text-cyan-300"
+          } transition-transform duration-300`}
+        />
+        <span className="text-xl font-bold bg-gradient-to-r from-yellow-400 to-cyan-400 bg-clip-text text-transparent">
+          {isUploading ? "PROCESSING..." : "UPLOAD"}
+        </span>
+      </div>
+
+      <input
+        id="file-upload"
+        data-testid="file-input" 
+        type="file"
+        className="hidden"
+        accept=".ics"
+        onChange={handleFileChange}
+        disabled={isUploading}
+      />
+    </label>
   );
 };
 
