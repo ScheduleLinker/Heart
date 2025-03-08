@@ -17,7 +17,7 @@ async def ics_upload(ics_file: UploadFile = File(...)) -> UploadResponse:
             uid="",
             message=IcsUploadMessages.NotAIcs.value,
             status=Status.Error.value,
-            json=""
+            data={}
         )
         print(response)
         return response
@@ -32,7 +32,7 @@ async def ics_upload(ics_file: UploadFile = File(...)) -> UploadResponse:
             uid="",
             message=IcsUploadMessages.TooLarge.value,
             status=Status.Error.value,
-            json=""
+            data={}
         )
 
     # Parse ICS file and store in temp storage
@@ -42,8 +42,9 @@ async def ics_upload(ics_file: UploadFile = File(...)) -> UploadResponse:
         uid=parse_ics_uid,
         message=IcsUploadMessages.IcsUploadSuccess.value,
         status=Status.Success.value,
-        json=ics_json
+        data=ics_json
     )
 
-    print(response.model_dump)
-    return response
+    # print(response.data)
+    return response.model_dump()
+    #return response
