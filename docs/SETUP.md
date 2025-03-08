@@ -9,7 +9,7 @@
 5. Then, run `pip install -r requirements.txt`. This will install all the packages necessary to run the project.
 6. To run the API, in your console type in `fastapi dev backend/app.py`. This should enable the FastAPI endpoints on port 8000. To see the swagger with all the explanation head to <b>localhost:8000/docs</b>.
 ### EndPoint:
-- Response 200: 
+- **Response 200 OK format**: 
 ```
 {
   "uid": "string",
@@ -22,4 +22,45 @@
 - A local `storage.json` file is generated to store the parsed contents
 
 ![Screenshot from 2025-02-28 21-54-03](https://github.com/user-attachments/assets/31c26de6-e156-4e25-8057-efe9bc03fcf8)
+
+- Result(200 Ok)-`/api/ics-upload`:
+```
+{
+  "uid": "c2f7238f-127f-48fc-ae11-e2a6468e6eb9",
+  "message": "Ics file uploaded successfully.",
+  "status": "Success",
+  "data": {
+    "events": [
+      {
+        "summary": "Oral Presentations COM 312 108",
+        "description": "CRN: 11827\nCredit Hours: 3.0\nLevel: Undergraduate\nInstructor: Raufova, Nigora (Primary)",
+        "start": "2023-01-19T18:00:00-05:00",
+        "end": "2023-01-19T20:50:00-05:00",
+        "location": "Campus: Newark Building: Central King Building Room: 214"
+      },
+      {
+        "summary": "Roadmap to Computing CS 100 012",
+        "description": "CRN: 11872\nCredit Hours: 3.0\nLevel: Undergraduate\nInstructor: Islam, Akm Z (Primary)",
+        "start": "2023-01-18T13:00:00-05:00",
+        "end": "2023-01-18T14:20:00-05:00",
+        "location": "Campus: Newark Building: Central King Building Room: 212"
+      },
+      {
+        "summary": "Scripting for System Administration IT 240 002",
+        "description": "CRN: 14057\nCredit Hours: 3.0\nLevel: Undergraduate\nInstructor: Vohra, Rosemina A. (Primary)",
+        "start": "2023-01-18T10:00:00-05:00",
+        "end": "2023-01-18T11:20:00-05:00",
+        "location": "Campus: Newark Building: Kupfrian Hall Room: 106"
+      },
+      {
+        "summary": "Computing &amp; Effective Com YWCC 207 022",
+        "description": "CRN: 15662\nCredit Hours: 1.0\nLevel: Undergraduate\nInstructor: McCormick, Shanna A. (Primary)",
+        "start": "2023-01-19T11:30:00-05:00",
+        "end": "2023-01-19T12:50:00-05:00",
+        "location": "Campus: Newark Building: Central King Building Room: 206"
+      }
+    ]
+  }
+}
+```
 
