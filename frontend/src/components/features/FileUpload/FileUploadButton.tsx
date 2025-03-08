@@ -8,7 +8,8 @@ import { ChangeEvent, useState } from "react";
 import { Upload } from "lucide-react";
 
 // Function to handle the file upload
-const FileUploadHandler = async (file: File, setIsUploading: (value: boolean) => void) => {
+const FileUploadHandler = async (file: File) => {
+  //backend url stored in an .env file
   const API_URL = import.meta.env.VITE_BACKEND_URL;
   
   const formData = new FormData();
@@ -25,13 +26,11 @@ const FileUploadHandler = async (file: File, setIsUploading: (value: boolean) =>
     }
 
     const data = await response.json();
-    console.log(data);
+    console.log(`here is the ${data}`);
     alert(`${data.message}`);
   } catch (error) {
     console.error("Upload Error: ", error);
     alert("Failed to upload the file. Please try again.");
-  } finally {
-    setIsUploading(false); // Ensure UI resets after upload attempt
   }
 };
 
@@ -49,7 +48,8 @@ const FileUploadButton = () => {
     }
 
     setIsUploading(true);
-    await FileUploadHandler(file, setIsUploading);
+    await FileUploadHandler(file);
+    setIsUploading(false);
   };
 
   return (
