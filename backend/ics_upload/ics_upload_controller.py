@@ -19,7 +19,7 @@ class UploadResponse(BaseModel):
 
 class EventDetails(BaseModel):
     summary: str
-    description: Optional[str] = None
+    description: Optional[dict] = None
     start: str
     end: str
     location: Optional[str] = None
@@ -37,9 +37,10 @@ def parse_ics(ics_file: bytes) -> Tuple[str, dict]:
         events: List[dict] = []
         for component in calendar.walk():
             if component.name == "VEVENT":
+                raw_description = str(component.get("DESCRIPTION", "")).strip()
                 event = EventDetails(
                     summary=str(component.get("SUMMARY", "No Title")),
-                    description=str(component.get("DESCRIPTION", "")).strip(),
+                    description=parse_description(raw_description), # Convert to dict
                     start=component.get("DTSTART").dt.isoformat() if component.get("DTSTART") else "N/A",
                     end=component.get("DTEND").dt.isoformat() if component.get("DTEND") else "N/A",
                     location=str(component.get("LOCATION", "")).strip(),
@@ -59,3 +60,19 @@ def parse_ics(ics_file: bytes) -> Tuple[str, dict]:
         return ics_uid, {"events": events} # Return dictionary instead of JSON string
     except Exception as e:
         return f"Error parsing ICS file: {str(e)}", {}
+    
+
+def parse_description(description_str: str) -> dict:
+    """
+    Parses the DESCRIPTION field and converts it into a dictionary.
+    Expected format: "Key1: Value1\nKey2: Value2\nKey3: Value3"
+    """
+    description_dict = {}
+    lines = description_str.strip().split("\n")
+
+    for line in lines:
+        if ": " in line:  # Ensure valid key-value format
+            key, value = line.split(": ", 1)  # Split only on first ": "
+            description_dict[key.strip()] = value.strip()
+
+    return description_dict
