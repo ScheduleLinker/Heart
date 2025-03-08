@@ -15,7 +15,7 @@
   "uid": "string",
   "message": "string",
   "status": "string",
-  "json": "string"
+  "data": {}
 }
 ```
 

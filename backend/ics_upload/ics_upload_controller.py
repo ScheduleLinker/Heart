@@ -14,7 +14,7 @@ class UploadResponse(BaseModel):
     uid: str
     message: str
     status: str
-    json: str
+    data: dict
 
 
 class EventDetails(BaseModel):
@@ -25,7 +25,7 @@ class EventDetails(BaseModel):
     location: Optional[str] = None
 
 # Function to parse the ICS file
-def parse_ics(ics_file: bytes) -> Tuple[str, str]:
+def parse_ics(ics_file: bytes) -> Tuple[str, dict]:
     """
     Parses an ICS file and extracts event details.
     Handles multiple calendars and stores events in TempStorage.
@@ -47,15 +47,15 @@ def parse_ics(ics_file: bytes) -> Tuple[str, str]:
                 events.append(event.model_dump())
 
         if not events:
-            return "No events found in ICS file."
+            return "No events found in ICS file.", {}
 
-        #convert ics to json
-        ics_json = json.dumps(events, indent=4)
+        # Convert events list to JSON inside "events" key
+        #ics_json = json.dumps({"events": events}, indent=4)
 
         # Store the parsed events in TempStorage
         temp_storage = TempStorage()  # Initialize storage
         ics_uid = temp_storage.create({"events": events})
-        return ics_uid, ics_json
-
+        
+        return ics_uid, {"events": events} # Return dictionary instead of JSON string
     except Exception as e:
-        return f"Error parsing ICS file: {str(e)}"
+        return f"Error parsing ICS file: {str(e)}", {}
