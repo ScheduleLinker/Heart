@@ -4,40 +4,17 @@
  *
  * @returns {JSX.Element}
  */
+import { useNavigate } from "react-router-dom";
 import { ChangeEvent, useState } from "react";
 import { Upload } from "lucide-react";
-
-// Function to handle the file upload
-const FileUploadHandler = async (file: File) => {
-  //backend url stored in an .env file
-  const API_URL = import.meta.env.VITE_BACKEND_URL;
-  
-  const formData = new FormData();
-  formData.append("ics_file", file);
-
-  try {
-    const response = await fetch(`${API_URL}/api/ics-upload`, { 
-      method: "POST",
-      body: formData,
-    });
-
-    if (!response.ok) {
-      throw new Error(`Upload failed with status ${response.status}`);
-    }
-
-    const data = await response.json();
-    console.log(`here is the ${data}`);
-    alert(`${data.message}`);
-  } catch (error) {
-    console.error("Upload Error: ", error);
-    alert("Failed to upload the file. Please try again.");
-  }
-};
+import { FileUploadHandler } from "@/lib/utils";
+import { useUploadStore } from "@/stores/uploadStore";
 
 // File Upload Button Component
 const FileUploadButton = () => {
   const [isUploading, setIsUploading] = useState(false);
-
+  const { setUploadedData } = useUploadStore();
+  const navigate = useNavigate();
   const handleFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -48,7 +25,10 @@ const FileUploadButton = () => {
     }
 
     setIsUploading(true);
-    await FileUploadHandler(file);
+    const data = await FileUploadHandler(file);
+    console.log(data);
+    setUploadedData(data);
+    navigate("/workspace");
     setIsUploading(false);
   };
 

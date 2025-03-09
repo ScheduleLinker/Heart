@@ -1,8 +1,7 @@
+import { FileUploadHandler } from '@/lib/utils';
 import { ReactNode, useState, useCallback, useEffect } from 'react';
-
 interface GlobalDragDropProps {
   children: ReactNode;
-  onFilesDropped?: (files: File[]) => void;
   showFileList?: boolean;
   overlayClassName?: string;
   dropPromptText?: string;
@@ -10,7 +9,6 @@ interface GlobalDragDropProps {
 
 export default function GlobalDragDrop({
   children,
-  onFilesDropped,
   showFileList = false,
   overlayClassName = "bg-void-900 bg-opacity-70 border-2 border-dashed border-blue-400",
   dropPromptText = "Drop file(s) here"
@@ -51,7 +49,7 @@ export default function GlobalDragDrop({
     if (e.dataTransfer?.files && e.dataTransfer.files.length > 0) {
       const droppedFiles = Array.from(e.dataTransfer.files);
       
-      // Filter for .ics and .pdf files only
+      // Filter for .ics only
       const validFiles = droppedFiles.filter(file => {
         const fileType = file.type;
         const fileName = file.name.toLowerCase();
@@ -68,13 +66,11 @@ export default function GlobalDragDrop({
       setFiles(prevFiles => [...prevFiles, ...validFiles]);
       
       // Call the onFilesDropped callback if provided
-      if (onFilesDropped) {
-        onFilesDropped(validFiles);
-      }
+      FileUploadHandler(validFiles);
       
       e.dataTransfer.clearData();
     }
-  }, [onFilesDropped]);
+  },[]);
 
   // Set up event listeners
   useEffect(() => {
@@ -113,7 +109,7 @@ export default function GlobalDragDrop({
       {/* Optional file list display */}
       {showFileList && files.length > 0 && (
         <div className="fixed bottom-4 right-4 bg-void-800 p-4 rounded-lg text-white z-40 max-w-md" data-testid="files-list">
-          <h3 className="font-medium mb-2">Uploaded Files:</h3>
+          <h3 className="font-medium mb-2">Files:</h3>
           <ul className="text-sm">
             {files.map((file, index) => (
               <li key={index} className="mb-1">
@@ -127,6 +123,13 @@ export default function GlobalDragDrop({
             data-testid="delete-button"
           >
             Delete
+          </button>
+          <button
+            onClick={() => null}
+            className="mt-2 px-9 py-1 bg-red-500 text-white rounded text-xs"
+            data-testid="delete-button"
+          >
+            Upload
           </button>
         </div>
       )}
