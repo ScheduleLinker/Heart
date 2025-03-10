@@ -1,5 +1,6 @@
 import { FileUploadHandler } from '@/lib/utils';
 import { ReactNode, useState, useCallback, useEffect } from 'react';
+
 interface GlobalDragDropProps {
   children: ReactNode;
   showFileList?: boolean;
@@ -14,107 +15,112 @@ export default function GlobalDragDrop({
   dropPromptText = "Drop file(s) here"
 }: GlobalDragDropProps) {
   const [isDragging, setIsDragging] = useState(false);
+  const [dragCounter, setDragCounter] = useState(0);
   const [files, setFiles] = useState<File[]>([]);
   const [error, setError] = useState<string | null>(null);
 
-  // Handle drag events
-  const handleDragIn = useCallback((e: DragEvent) => {
+  // When a drag enters, increment the counter and set dragging true
+  const handleDragEnter = useCallback((e: DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    setDragCounter((prev) => prev + 1);
     if (e.dataTransfer?.items && e.dataTransfer.items.length > 0) {
       setIsDragging(true);
     }
   }, []);
 
-  const handleDragOut = useCallback((e: DragEvent) => {
+  // When a drag leaves, decrement the counter. Only remove overlay when counter reaches 0.
+  const handleDragLeave = useCallback((e: DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    setIsDragging(false);
+    setDragCounter((prev) => {
+      const newCount = prev - 1;
+      if (newCount <= 0) {
+        setIsDragging(false);
+      }
+      return newCount;
+    });
   }, []);
 
   const handleDragOver = useCallback((e: DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!isDragging) {
-      setIsDragging(true);
-    }
-  }, [isDragging]);
+    // Do nothing else; the overlay is already shown from dragEnter.
+  }, []);
 
   const handleDrop = useCallback((e: DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
+
+    // Reset the drag counter and remove the overlay
+    setDragCounter(0);
     setIsDragging(false);
     setError(null);
 
     if (e.dataTransfer?.files && e.dataTransfer.files.length > 0) {
       const droppedFiles = Array.from(e.dataTransfer.files);
-      
-      // Filter for .ics only
       const validFiles = droppedFiles.filter(file => {
         const fileType = file.type;
         const fileName = file.name.toLowerCase();
-        
         return fileType === 'text/calendar' || fileName.endsWith('.ics');
       });
-      
+
       if (validFiles.length === 0) {
         setError('Only .ics files are allowed');
-        setTimeout(() => setError(null), 3000); // Clear error after 3 seconds
+        setTimeout(() => setError(null), 3000);
         return;
       }
-      
+
       setFiles(prevFiles => [...prevFiles, ...validFiles]);
-      
-      // Call the onFilesDropped callback if provided
       FileUploadHandler(validFiles);
-      
       e.dataTransfer.clearData();
     }
-  },[]);
+  }, []);
 
-  // Set up event listeners
+  // Setup global event listeners on the document body
   useEffect(() => {
     const div = document.body;
-    
-    div.addEventListener('dragenter', handleDragIn);
-    div.addEventListener('dragleave', handleDragOut);
+    div.addEventListener('dragenter', handleDragEnter);
+    div.addEventListener('dragleave', handleDragLeave);
     div.addEventListener('dragover', handleDragOver);
     div.addEventListener('drop', handleDrop);
-    
+
     return () => {
-      div.removeEventListener('dragenter', handleDragIn);
-      div.removeEventListener('dragleave', handleDragOut);
+      div.removeEventListener('dragenter', handleDragEnter);
+      div.removeEventListener('dragleave', handleDragLeave);
       div.removeEventListener('dragover', handleDragOver);
       div.removeEventListener('drop', handleDrop);
     };
-  }, [handleDragIn, handleDragOut, handleDragOver, handleDrop]);
+  }, [handleDragEnter, handleDragLeave, handleDragOver, handleDrop]);
 
   return (
     <>
       {isDragging && (
-        <div className={`fixed inset-0 z-50 flex items-center justify-center pointer-events-none ${overlayClassName}`}>
-          <div className="text-white text-xl font-medium">{dropPromptText} (.ics only)</div>
+        <div
+          className={`fixed inset-0 z-50 flex items-center justify-center pointer-events-none ${overlayClassName}`}
+        >
+          <div className="text-white text-xl font-medium pointer-events-auto">
+            {dropPromptText} (.ics only)
+          </div>
         </div>
       )}
-      
+
       {children}
-      
+
       {/* Error message */}
       {error && (
         <div className="fixed top-4 right-4 bg-red-500 p-3 rounded-lg text-white z-50 shadow-lg" data-testid="error-message">
           {error}
         </div>
       )}
-      
+
       {/* Optional file list display */}
       {showFileList && files.length > 0 && (
         <div className="fixed bottom-4 right-4 bg-void-800 p-4 rounded-lg text-white z-40 max-w-md" data-testid="files-list">
           <h3 className="font-medium mb-2">Files:</h3>
           <ul className="text-sm">
             {files.map((file, index) => (
-              <li key={index} className="mb-1">
-                {file.name}
-              </li>
+              <li key={index} className="mb-1">{file.name}</li>
             ))}
           </ul>
           <button
@@ -123,13 +129,6 @@ export default function GlobalDragDrop({
             data-testid="delete-button"
           >
             Delete
-          </button>
-          <button
-            onClick={() => null}
-            className="mt-2 px-9 py-1 bg-red-500 text-white rounded text-xs"
-            data-testid="delete-button"
-          >
-            Upload
           </button>
         </div>
       )}
