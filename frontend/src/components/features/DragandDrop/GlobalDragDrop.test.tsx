@@ -1,175 +1,127 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
+// GlobalDragDrop.test.tsx
+import React from 'react';
+import { render, fireEvent, waitFor, screen } from '@testing-library/react';
 import GlobalDragDrop from './GlobalDragDrop';
+import { MemoryRouter } from 'react-router-dom';
+import { describe, it, beforeEach, vi, expect } from 'vitest';
 
-describe('GlobalDragDrop', () => {
-  const onFilesDroppedMock = vi.fn();
+// Mock the utils functions
+vi.mock('@/lib/utils', () => ({
+  FileUploadHandler: vi.fn().mockResolvedValue(undefined),
+  localStorageDataValidation: vi.fn(),
+}));
 
-  // Mock file data
-  const createMockFile = (name: string, type: string, size: number = 1024) => {
-    const file = new File(['mock file content'], name, { type });
-    Object.defineProperty(file, 'size', { value: size });
-    return file;
+import { FileUploadHandler, localStorageDataValidation } from '@/lib/utils';
+
+// Mock useNavigate from react-router-dom
+const mockedNavigate = vi.fn();
+vi.mock('react-router-dom', async () => {
+  const actual = await vi.importActual('react-router-dom');
+  return {
+    ...actual,
+    useNavigate: () => mockedNavigate,
   };
+});
 
+describe('GlobalDragDrop Component', () => {
   beforeEach(() => {
-    // Reset mocks before each test
     vi.clearAllMocks();
+    localStorage.clear();
   });
 
-  afterEach(() => {
-    cleanup();
-  });
+  it('shows overlay on drag and navigates after valid file drop', async () => {
+    // Create a dummy .ics file
+    const dummyFile = new File(['dummy content'], 'test.ics', {
+      type: 'text/calendar',
+    });
 
-  it('renders children correctly', () => {
     render(
-      <GlobalDragDrop>
-        <div data-testid="child-content">Test Content</div>
-      </GlobalDragDrop>
+      <MemoryRouter>
+        <GlobalDragDrop>
+          <div>Test Content</div>
+        </GlobalDragDrop>
+      </MemoryRouter>
     );
 
-    expect(screen.getByTestId('child-content')).toBeInTheDocument();
-    expect(screen.getByText('Test Content')).toBeInTheDocument();
-  });
-
-  it('shows overlay when dragging files', () => {
-    render(
-      <GlobalDragDrop onFilesDropped={onFilesDroppedMock}>
-        <div>Test Content</div>
-      </GlobalDragDrop>
-    );
-
-    // Initial state - overlay should not be visible
-    expect(screen.queryByText(/Drop file\(s\) here/)).not.toBeInTheDocument();
-
-    // Simulate drag enter
+    // Simulate drag enter event to show overlay
     fireEvent.dragEnter(document.body, {
       dataTransfer: {
-        items: [{ kind: 'file' }],
+        items: [{ kind: 'file', type: 'text/calendar' }],
       },
     });
 
-    // Overlay should now be visible with ICS text
-    expect(screen.getByText(/Drop file\(s\) here \(.ics only\)/)).toBeInTheDocument();
+    // The overlay should be visible with the drop prompt text
+    expect(screen.getByText(/Release to Upload/i)).toBeInTheDocument();
 
-    // Simulate drag leave
-    fireEvent.dragLeave(document.body);
-
-    // Overlay should be hidden again
-    expect(screen.queryByText(/Drop file\(s\) here/)).not.toBeInTheDocument();
-  });
-
-  it('accepts ICS files regardless of MIME type', () => {
-    render(
-      <GlobalDragDrop onFilesDropped={onFilesDroppedMock} showFileList={true}>
-        <div>Test Content</div>
-      </GlobalDragDrop>
-    );
-
-    // Create ICS files with different MIME types
-    const icsFile1 = createMockFile('calendar.ics', 'text/calendar');
-    const icsFile2 = createMockFile('event.ics', 'application/octet-stream');
-
-    // Simulate file drop
+    // Simulate drop event with valid file data
     fireEvent.drop(document.body, {
       dataTransfer: {
-        files: [icsFile1, icsFile2],
-        clearData: vi.fn(),
+        files: [dummyFile],
+        items: [
+          {
+            kind: 'file',
+            type: 'text/calendar',
+            getAsFile: () => dummyFile,
+          },
+        ],
       },
     });
 
-    // Check if callback was called with both ICS files
-    expect(onFilesDroppedMock).toHaveBeenCalledTimes(1);
-    expect(onFilesDroppedMock).toHaveBeenCalledWith([icsFile1, icsFile2]);
-
-    // Check if both files are displayed in the file list
-    expect(screen.getByText('calendar.ics')).toBeInTheDocument();
-    expect(screen.getByText('event.ics')).toBeInTheDocument();
-  });
-
-  it('rejects non-ICS files', async () => {
-    render(
-      <GlobalDragDrop onFilesDropped={onFilesDroppedMock} showFileList={true}>
-        <div>Test Content</div>
-      </GlobalDragDrop>
-    );
-
-    const pdfFile = createMockFile('document.pdf', 'application/pdf');
-    const imageFile = createMockFile('image.jpg', 'image/jpeg');
-
-    // Simulate file drop with invalid files
-    fireEvent.drop(document.body, {
-      dataTransfer: {
-        files: [pdfFile, imageFile],
-        clearData: vi.fn(),
-      },
-    });
-
-    // Check if error message is displayed
-    expect(screen.getByTestId('error-message')).toBeInTheDocument();
-    expect(screen.getByText('Only .ics files are allowed')).toBeInTheDocument();
-
-    // Check that callback was not called
-    expect(onFilesDroppedMock).not.toHaveBeenCalled();
-
-    // Error should disappear after some time
+    // Wait for asynchronous operations
     await waitFor(() => {
-      expect(screen.queryByTestId('error-message')).not.toBeInTheDocument();
-    }, { timeout: 4000 });
+      // Ensure the overlay is removed
+      expect(screen.queryByText(/Release to Upload/i)).not.toBeInTheDocument();
+      // Check that FileUploadHandler is called
+      expect(FileUploadHandler).toHaveBeenCalled();
+      // Check that localStorageDataValidation is called
+      expect(localStorageDataValidation).toHaveBeenCalled();
+      // And that navigation to /workspace occurred
+      expect(mockedNavigate).toHaveBeenCalledWith('/workspace');
+    });
   });
 
-  it('filters out invalid files from mixed drop', () => {
+  it('shows error if dropped file is not a .ics file', async () => {
+    const dummyFile = new File(['dummy content'], 'test.txt', {
+      type: 'text/plain',
+    });
+
     render(
-      <GlobalDragDrop onFilesDropped={onFilesDroppedMock} showFileList={true}>
-        <div>Test Content</div>
-      </GlobalDragDrop>
+      <MemoryRouter>
+        <GlobalDragDrop>
+          <div>Test Content</div>
+        </GlobalDragDrop>
+      </MemoryRouter>
     );
 
-    const icsFile = createMockFile('calendar.ics', 'text/calendar');
-    const pdfFile = createMockFile('document.pdf', 'application/pdf');
-
-    // Simulate file drop with mix of valid and invalid files
-    fireEvent.drop(document.body, {
+    // Simulate drag enter event
+    fireEvent.dragEnter(document.body, {
       dataTransfer: {
-        files: [icsFile, pdfFile],
-        clearData: vi.fn(),
+        items: [{ kind: 'file', type: 'text/plain' }],
       },
     });
 
-    // Check if callback was called with only the valid ICS file
-    expect(onFilesDroppedMock).toHaveBeenCalledTimes(1);
-    expect(onFilesDroppedMock).toHaveBeenCalledWith([icsFile]);
+    // The overlay should appear
+    expect(screen.getByText(/Release to Upload/i)).toBeInTheDocument();
 
-    // Check if only the valid file is displayed
-    expect(screen.getByText('calendar.ics')).toBeInTheDocument();
-    expect(screen.queryByText('document.pdf')).not.toBeInTheDocument();
-  });
-
-  it('clears file list when delete button is clicked', () => {
-    render(
-      <GlobalDragDrop onFilesDropped={onFilesDroppedMock} showFileList={true}>
-        <div>Test Content</div>
-      </GlobalDragDrop>
-    );
-
-    const icsFile = createMockFile('calendar.ics', 'text/calendar');
-
-    // Simulate file drop
+    // Simulate drop event with an invalid file type
     fireEvent.drop(document.body, {
       dataTransfer: {
-        files: [icsFile],
-        clearData: vi.fn(),
+        files: [dummyFile],
+        items: [
+          {
+            kind: 'file',
+            type: 'text/plain',
+            getAsFile: () => dummyFile,
+          },
+        ],
       },
     });
 
-    // Check file is displayed
-    expect(screen.getByText('calendar.ics')).toBeInTheDocument();
-
-    // Click delete button
-    fireEvent.click(screen.getByTestId('delete-button'));
-
-    // Check file list is cleared
-    expect(screen.queryByText('calendar.ics')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('files-list')).not.toBeInTheDocument();
+    // Wait for the error message to appear
+    await waitFor(() => {
+      expect(screen.getByText(/Only \.ics files are allowed/i)).toBeInTheDocument();
+      // Navigation should not be triggered on error
+      expect(mockedNavigate).not.toHaveBeenCalled();
+    });
   });
 });

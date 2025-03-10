@@ -1,6 +1,6 @@
-import { FileUploadHandler } from '@/lib/utils';
+import { FileUploadHandler, localStorageDataValidation } from '@/lib/utils';
 import { ReactNode, useState, useCallback, useEffect } from 'react';
-
+import { useNavigate } from "react-router-dom";
 interface GlobalDragDropProps {
   children: ReactNode;
   showFileList?: boolean;
@@ -12,12 +12,14 @@ export default function GlobalDragDrop({
   children,
   showFileList = false,
   overlayClassName = "bg-void-900 bg-opacity-70 border-2 border-dashed border-blue-400",
-  dropPromptText = "Drop file(s) here"
+  dropPromptText = "Release to Upload"
 }: GlobalDragDropProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [dragCounter, setDragCounter] = useState(0);
   const [files, setFiles] = useState<File[]>([]);
   const [error, setError] = useState<string | null>(null);
+  //navigate to the next screen
+  const navigate = useNavigate();
 
   // When a drag enters, increment the counter and set dragging true
   const handleDragEnter = useCallback((e: DragEvent) => {
@@ -48,7 +50,7 @@ export default function GlobalDragDrop({
     // Do nothing else; the overlay is already shown from dragEnter.
   }, []);
 
-  const handleDrop = useCallback((e: DragEvent) => {
+  const handleDrop = useCallback( (e: DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
 
@@ -72,8 +74,19 @@ export default function GlobalDragDrop({
       }
 
       setFiles(prevFiles => [...prevFiles, ...validFiles]);
-      FileUploadHandler(validFiles);
-      e.dataTransfer.clearData();
+      // send to the backend for processing
+      FileUploadHandler(files);
+
+
+      const data  = localStorage.getItem('parsed-ics');
+      localStorageDataValidation(data);
+      try{
+        e.dataTransfer.clearData();
+      }catch(error) {
+        console.error("Error clearing local storage", error);
+      }
+    
+      navigate("/workspace");
     }
   }, []);
 
@@ -100,7 +113,7 @@ export default function GlobalDragDrop({
           className={`fixed inset-0 z-50 flex items-center justify-center pointer-events-none ${overlayClassName}`}
         >
           <div className="text-white text-xl font-medium pointer-events-auto">
-            {dropPromptText} (.ics only)
+            {dropPromptText} (.ics only!)
           </div>
         </div>
       )}

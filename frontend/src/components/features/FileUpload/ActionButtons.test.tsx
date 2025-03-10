@@ -1,19 +1,19 @@
-/** 
- * A test for ActionButton component
- * test if the children FileUpload button and CreateButton is in the dom
-*/
-
-
+// ActionButtons.test.tsx
 import { render, screen } from '@testing-library/react';
-import ActionButtons from './ActionButtons';
-import { describe, it, expect } from 'vitest';
+import { MemoryRouter } from 'react-router-dom'; // Import MemoryRouter
+import ActionButtons from './ActionButtons'; // Your component that uses useNavigate
 
 describe('ActionButtons Component', () => {
   it('renders FileUploadButton and CreateButton', () => {
-    render(<ActionButtons />);
-    
-    // Check if FileUploadButton and CreateButton are in the document
-    expect(screen.getByText(/create/i)).toBeInTheDocument();
-    expect(screen.getByText(/upload/i)).toBeInTheDocument();
+    // Wrap the component in MemoryRouter to provide a routing context
+    render(
+      <MemoryRouter>
+        <ActionButtons />
+      </MemoryRouter>
+    );
+
+
+    expect(screen.getByTestId('file-upload-button')).toBeInTheDocument();
+    expect(screen.getByTestId('create-button')).toBeInTheDocument();
   });
 });

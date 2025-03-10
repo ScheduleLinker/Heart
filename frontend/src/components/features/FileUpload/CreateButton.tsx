@@ -31,6 +31,7 @@ const CreateButton = () => {
 
   return (
   <button 
+  data-testid="create-button"
   onClick={handleCreate}
   disabled={isCreating}
   className="w-64 h-64 flex flex-col items-center justify-center 

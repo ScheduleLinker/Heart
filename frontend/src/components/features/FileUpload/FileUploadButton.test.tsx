@@ -1,51 +1,116 @@
-// FileUploadButton.test.tsx
-import { render, fireEvent, waitFor, screen } from "@testing-library/react";
-import FileUploadButton from "./FileUploadButton";
-import { describe, expect, test, vi } from "vitest";
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { vi, describe, it, expect, beforeEach } from 'vitest';
+import { BrowserRouter } from 'react-router-dom';
+import FileUploadButton from './FileUploadButton';
+import * as utils from '@/lib/utils';
 
-// Mock the fetch API using vitest's vi.fn()
-global.fetch = vi.fn(() =>
-  Promise.resolve({
-    ok: true,
-    json: () => Promise.resolve({ message: "File uploaded successfully!" }),
-  })
-) as unknown as typeof fetch;
+// Create a mock navigate function
+const navigateMock = vi.fn();
 
-describe("FileUploadButton", () => {
-  test("alerts user on successful file upload", async () => {
-    render(<FileUploadButton />);
+// Mock the react-router-dom's useNavigate
+vi.mock('react-router-dom', async () => {
+  const actual = await vi.importActual('react-router-dom');
+  return {
+    ...actual,
+    useNavigate: () => navigateMock
+  };
+});
+
+// Mock the utility functions
+vi.mock('@/lib/utils', () => ({
+  FileUploadHandler: vi.fn(),
+  localStorageDataValidation: vi.fn()
+}));
+
+describe('FileUploadButton', () => {
+  beforeEach(() => {
+    // Clear mocks before each test
+    vi.clearAllMocks();
     
-    // Query the file input by its test id
-    const fileInput = screen.getByTestId("file-input") as HTMLInputElement;
+    // Reset localStorage
+    localStorage.clear();
     
-    // Create a dummy .ics file
-    const file = new File(["BEGIN:VCALENDAR\nEND:VCALENDAR"], "test.ics", {
-      type: "text/calendar",
-    });
+    // Mock window.alert
+    window.alert = vi.fn();
+  });
 
-    // Simulate file selection
+  it('renders the upload button', () => {
+    render(
+      <BrowserRouter>
+        <FileUploadButton />
+      </BrowserRouter>
+    );
+    
+    expect(screen.getByTestId('file-upload-button')).toBeInTheDocument();
+    expect(screen.getByText('UPLOAD')).toBeInTheDocument();
+  });
+
+  it('shows an alert when a non-ics file is selected', async () => {
+    render(
+      <BrowserRouter>
+        <FileUploadButton />
+      </BrowserRouter>
+    );
+    
+    const fileInput = screen.getByTestId('file-upload-button');
+    const file = new File(['test content'], 'test.txt', { type: 'text/plain' });
+    
     fireEvent.change(fileInput, { target: { files: [file] } });
+    
+    expect(window.alert).toHaveBeenCalledWith('Please select a valid .ics file.');
+    expect(utils.FileUploadHandler).not.toHaveBeenCalled();
+  });
 
-    // Wait for fetch to be called
+  it('processes ics file upload correctly', async () => {
+    vi.mocked(utils.FileUploadHandler).mockResolvedValue(undefined);
+
+    render(
+      <BrowserRouter>
+        <FileUploadButton />
+      </BrowserRouter>
+    );
+    
+    const fileInput = screen.getByTestId('file-upload-button');
+    const file = new File(['test ics content'], 'calendar.ics', { type: 'text/calendar' });
+    
+    // Set up mock localStorage data
+    const mockData = '{"events":[{"summary":"Test Event"}]}';
+    vi.spyOn(Storage.prototype, 'getItem').mockReturnValue(mockData);
+    
+    fireEvent.change(fileInput, { target: { files: [file] } });
+    
+    // Verify processing state
+    expect(screen.getByText('PROCESSING...')).toBeInTheDocument();
+    
     await waitFor(() => {
-      expect(global.fetch).toHaveBeenCalledTimes(1);
+      // Check if FileUploadHandler was called with the file
+      expect(utils.FileUploadHandler).toHaveBeenCalledWith(file);
+      
+      // Check if localStorage was accessed
+      expect(localStorage.getItem).toHaveBeenCalledWith('parsed-ics');
+      
+      // Check if data validation was performed
+      expect(utils.localStorageDataValidation).toHaveBeenCalledWith(mockData);
+      
+      // Verify navigation was called
+      expect(navigateMock).toHaveBeenCalledWith("/workspace");
     });
   });
 
-  test("alerts user when non-.ics file is selected", () => {
-    const alertMock = vi.spyOn(window, "alert").mockImplementation(() => {});
-    render(<FileUploadButton />);
-
-    const fileInput = screen.getByTestId("file-input") as HTMLInputElement;
-
-    // Create a dummy non-.ics file
-    const file = new File(["Some content"], "test.txt", {
-      type: "text/plain",
-    });
-
-    fireEvent.change(fileInput, { target: { files: [file] } });
-
-    expect(alertMock).toHaveBeenCalledWith("Please select a valid .ics file.");
-    alertMock.mockRestore();
+  it('handles the case when no file is selected', () => {
+    render(
+      <BrowserRouter>
+        <FileUploadButton />
+      </BrowserRouter>
+    );
+    
+    const fileInput = screen.getByTestId('file-upload-button');
+    
+    // Trigger change event without any files
+    fireEvent.change(fileInput, { target: { files: [] } });
+    
+    // Nothing should happen, verify no functions were called
+    expect(utils.FileUploadHandler).not.toHaveBeenCalled();
+    expect(window.alert).not.toHaveBeenCalled();
   });
 });

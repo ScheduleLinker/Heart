@@ -7,13 +7,12 @@
 import { useNavigate } from "react-router-dom";
 import { ChangeEvent, useState } from "react";
 import { Upload } from "lucide-react";
-import { FileUploadHandler } from "@/lib/utils";
-import { useUploadStore } from "@/stores/uploadStore";
+import { FileUploadHandler, localStorageDataValidation } from "@/lib/utils";
+
 
 // File Upload Button Component
 const FileUploadButton = () => {
   const [isUploading, setIsUploading] = useState(false);
-  const { setUploadedData } = useUploadStore();
   const navigate = useNavigate();
   const handleFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -27,12 +26,8 @@ const FileUploadButton = () => {
     setIsUploading(true);
     await FileUploadHandler(file);
     const data = localStorage.getItem('parsed-ics');
-    if (data) {
-      const parsedData = JSON.parse(data);
-      setUploadedData(parsedData);
-    }else{
-      console.error("Error retrieveing data file");
-    }
+
+    localStorageDataValidation(data);
 
     setIsUploading(false);
     navigate("/workspace");
@@ -70,7 +65,7 @@ const FileUploadButton = () => {
 
       <input
         id="file-upload"
-        data-testid="file-input" 
+        data-testid="file-upload-button" 
         type="file"
         className="hidden"
         accept=".ics"

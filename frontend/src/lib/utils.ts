@@ -37,9 +37,27 @@ export const FileUploadHandler = async (isFileArray:File | File[]) => {
     const data = await response.json();
     //store the data locally 
     localStorage.setItem('parsed-ics', JSON.stringify(data));
+  
 
   } catch (error) {
     console.error("Upload Error: ", error);
     alert("Failed to upload the file. Please try again.");
   }
 };
+
+export function localStorageDataValidation(localStorageData: string | null) {
+
+    if(!localStorageData) {
+      console.error("something is wrong with data: ", localStorageData);
+      return;
+    }
+
+    try {
+    const { message } = JSON.parse(localStorageData);
+    // just to alert the customer of good ics file!
+    alert(message);
+    console.log(localStorageData);
+    } catch(error) {
+    console.error("failed to parse the data file: ", error);
+    }
+}
