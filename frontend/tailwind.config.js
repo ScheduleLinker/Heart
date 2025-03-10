@@ -9,7 +9,7 @@ module.exports = {
 		},
 		animation: {
 		  'gradient-flow': 'gradient-flow 6s ease infinite'
-		}
+		},
 	  }
 	}
   }

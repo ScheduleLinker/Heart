@@ -35,8 +35,9 @@ export const FileUploadHandler = async (isFileArray:File | File[]) => {
     }
 
     const data = await response.json();
-    alert(`${data.message}`);
-    return data;
+    //store the data locally 
+    localStorage.setItem('parsed-ics', JSON.stringify(data));
+
   } catch (error) {
     console.error("Upload Error: ", error);
     alert("Failed to upload the file. Please try again.");

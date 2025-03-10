@@ -25,11 +25,17 @@ const FileUploadButton = () => {
     }
 
     setIsUploading(true);
-    const data = await FileUploadHandler(file);
-    console.log(data);
-    setUploadedData(data);
-    navigate("/workspace");
+    await FileUploadHandler(file);
+    const data = localStorage.getItem('parsed-ics');
+    if (data) {
+      const parsedData = JSON.parse(data);
+      setUploadedData(parsedData);
+    }else{
+      console.error("Error retrieveing data file");
+    }
+
     setIsUploading(false);
+    navigate("/workspace");
   };
 
   return (

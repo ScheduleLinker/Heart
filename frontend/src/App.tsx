@@ -9,7 +9,7 @@ export default function App() {
       <Routes>
       <Route path="/" element={<RootLayout><ActionButtons /></RootLayout>} /> {/*default route*/ }
         <Route path="/upload" element={<RootLayout><ActionButtons /></RootLayout>} />
-        <Route path="/workspace" element={<Workspace />} />
+        <Route path="/workspace" element={<RootLayout><Workspace /></RootLayout>} />
 
         
       </Routes>
