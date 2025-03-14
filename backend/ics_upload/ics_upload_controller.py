@@ -23,6 +23,7 @@ class EventDetails(BaseModel):
     start: str
     end: str
     location: Optional[str] = None
+    recurrence: Optional[dict] = None
 
 # Function to parse the ICS file
 def parse_ics(ics_file: bytes) -> Tuple[str, dict]:
@@ -38,12 +39,19 @@ def parse_ics(ics_file: bytes) -> Tuple[str, dict]:
         for component in calendar.walk():
             if component.name == "VEVENT":
                 raw_description = str(component.get("DESCRIPTION", "")).strip()
+
+                raw_rrule = component.get("RRULE", "")
+                rrule_str = raw_rrule.to_ical().decode("utf-8") if raw_rrule else ""
+
+
+                
                 event = EventDetails(
                     summary=str(component.get("SUMMARY", "No Title")),
                     description=parse_description(raw_description), # Convert to dict
                     start=component.get("DTSTART").dt.isoformat() if component.get("DTSTART") else "N/A",
                     end=component.get("DTEND").dt.isoformat() if component.get("DTEND") else "N/A",
                     location=str(component.get("LOCATION", "")).strip(),
+                    recurrence=parse_recurrence(rrule_str) if rrule_str else None,
                 )
                 events.append(event.model_dump())
 
@@ -76,3 +84,23 @@ def parse_description(description_str: str) -> dict:
             description_dict[key.strip()] = value.strip()
 
     return description_dict
+
+def parse_recurrence(recurrence_str: str) -> dict:
+    """
+    Parses the RRUle field and coverts it into a dictionary
+    Expected format: "FREQ=WEEKLY;BYDAY=MO,WE;UNTIL=20251231T235959Z"
+    """
+    recurrence_dict = {}
+    
+    # Ensure there's an actual recurrence rule
+    if not recurrence_str.strip():
+        return recurrence_dict
+    
+    # Split RRULE into key-value pairs
+    parts = recurrence_str.strip().split(";")
+    for part in parts:
+        if "=" in part:
+            key, value = part.split("=", 1)  # Split only at the first "="
+            recurrence_dict[key.strip()] = value.strip()
+
+    return recurrence_dict
