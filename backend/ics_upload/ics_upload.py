@@ -23,7 +23,7 @@ async def ics_upload(ics_files: List[UploadFile] = File(...)) -> List[UploadResp
                 data={}
             )
             print(response)
-            return response
+            return [response.model_dump()]
 
         # Read file content once
         file_content = await ics_file.read()
@@ -31,12 +31,13 @@ async def ics_upload(ics_files: List[UploadFile] = File(...)) -> List[UploadResp
         # Check file size (5MB limit)
         max_file_size = 5 * 1024 * 1024
         if len(file_content) > max_file_size:
-            return UploadResponse(
+            response = UploadResponse(
                 uid="",
                 message=IcsUploadMessages.TooLarge.value,
                 status=Status.Error.value,
                 data={}
             )
+            return [response.model_dump()]
 
         # Parse ICS file and store in temp storage
         parse_ics_uid, ics_json = parse_ics(file_content)
