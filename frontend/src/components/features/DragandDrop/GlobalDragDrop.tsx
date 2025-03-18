@@ -1,8 +1,8 @@
+import { FileUploadHandler, localStorageDataValidation } from '@/lib/utils';
 import { ReactNode, useState, useCallback, useEffect } from 'react';
-
+import { useNavigate } from "react-router-dom";
 interface GlobalDragDropProps {
   children: ReactNode;
-  onFilesDropped?: (files: File[]) => void;
   showFileList?: boolean;
   overlayClassName?: string;
   dropPromptText?: string;
@@ -10,115 +10,130 @@ interface GlobalDragDropProps {
 
 export default function GlobalDragDrop({
   children,
-  onFilesDropped,
   showFileList = false,
   overlayClassName = "bg-void-900 bg-opacity-70 border-2 border-dashed border-blue-400",
-  dropPromptText = "Drop file(s) here"
+  dropPromptText = "Release to Upload"
 }: GlobalDragDropProps) {
   const [isDragging, setIsDragging] = useState(false);
+  const [dragCounter, setDragCounter] = useState(0);
   const [files, setFiles] = useState<File[]>([]);
   const [error, setError] = useState<string | null>(null);
+  //navigate to the next screen
+  const navigate = useNavigate();
 
-  // Handle drag events
-  const handleDragIn = useCallback((e: DragEvent) => {
+  // When a drag enters, increment the counter and set dragging true
+  const handleDragEnter = useCallback((e: DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    setDragCounter((prev) => prev + 1);
     if (e.dataTransfer?.items && e.dataTransfer.items.length > 0) {
       setIsDragging(true);
     }
   }, []);
 
-  const handleDragOut = useCallback((e: DragEvent) => {
+  // When a drag leaves, decrement the counter. Only remove overlay when counter reaches 0.
+  const handleDragLeave = useCallback((e: DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    setIsDragging(false);
+    setDragCounter((prev) => {
+      const newCount = prev - 1;
+      if (newCount <= 0) {
+        setIsDragging(false);
+      }
+      return newCount;
+    });
   }, []);
 
   const handleDragOver = useCallback((e: DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!isDragging) {
-      setIsDragging(true);
-    }
-  }, [isDragging]);
+    // Do nothing else; the overlay is already shown from dragEnter.
+  }, []);
 
-  const handleDrop = useCallback((e: DragEvent) => {
+  const handleDrop = useCallback( (e: DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
+
+    // Reset the drag counter and remove the overlay
+    setDragCounter(0);
     setIsDragging(false);
     setError(null);
 
     if (e.dataTransfer?.files && e.dataTransfer.files.length > 0) {
       const droppedFiles = Array.from(e.dataTransfer.files);
-      
-      // Filter for .ics and .pdf files only
       const validFiles = droppedFiles.filter(file => {
         const fileType = file.type;
         const fileName = file.name.toLowerCase();
-        
         return fileType === 'text/calendar' || fileName.endsWith('.ics');
       });
-      
+
       if (validFiles.length === 0) {
         setError('Only .ics files are allowed');
-        setTimeout(() => setError(null), 3000); // Clear error after 3 seconds
+        setTimeout(() => setError(null), 3000);
         return;
       }
-      
-      setFiles(prevFiles => [...prevFiles, ...validFiles]);
-      
-      // Call the onFilesDropped callback if provided
-      if (onFilesDropped) {
-        onFilesDropped(validFiles);
-      }
-      
-      e.dataTransfer.clearData();
-    }
-  }, [onFilesDropped]);
 
-  // Set up event listeners
+      setFiles(prevFiles => [...prevFiles, ...validFiles]);
+      // send to the backend for processing
+      FileUploadHandler(files);
+
+
+      const data  = localStorage.getItem('parsed-ics');
+      localStorageDataValidation(data);
+      try{
+        e.dataTransfer.clearData();
+      }catch(error) {
+        console.error("Error clearing local storage", error);
+      }
+    
+      navigate("/workspace");
+    }
+  }, []);
+
+  // Setup global event listeners on the document body
   useEffect(() => {
     const div = document.body;
-    
-    div.addEventListener('dragenter', handleDragIn);
-    div.addEventListener('dragleave', handleDragOut);
+    div.addEventListener('dragenter', handleDragEnter);
+    div.addEventListener('dragleave', handleDragLeave);
     div.addEventListener('dragover', handleDragOver);
     div.addEventListener('drop', handleDrop);
-    
+
     return () => {
-      div.removeEventListener('dragenter', handleDragIn);
-      div.removeEventListener('dragleave', handleDragOut);
+      div.removeEventListener('dragenter', handleDragEnter);
+      div.removeEventListener('dragleave', handleDragLeave);
       div.removeEventListener('dragover', handleDragOver);
       div.removeEventListener('drop', handleDrop);
     };
-  }, [handleDragIn, handleDragOut, handleDragOver, handleDrop]);
+  }, [handleDragEnter, handleDragLeave, handleDragOver, handleDrop]);
 
   return (
     <>
       {isDragging && (
-        <div className={`fixed inset-0 z-50 flex items-center justify-center pointer-events-none ${overlayClassName}`}>
-          <div className="text-white text-xl font-medium">{dropPromptText} (.ics only)</div>
+        <div
+          className={`fixed inset-0 z-50 flex items-center justify-center pointer-events-none ${overlayClassName}`}
+        >
+          <div className="text-white text-xl font-medium pointer-events-auto">
+            {dropPromptText} (.ics only!)
+          </div>
         </div>
       )}
-      
+
       {children}
-      
+
       {/* Error message */}
       {error && (
         <div className="fixed top-4 right-4 bg-red-500 p-3 rounded-lg text-white z-50 shadow-lg" data-testid="error-message">
           {error}
         </div>
       )}
-      
+
       {/* Optional file list display */}
       {showFileList && files.length > 0 && (
         <div className="fixed bottom-4 right-4 bg-void-800 p-4 rounded-lg text-white z-40 max-w-md" data-testid="files-list">
-          <h3 className="font-medium mb-2">Uploaded Files:</h3>
+          <h3 className="font-medium mb-2">Files:</h3>
           <ul className="text-sm">
             {files.map((file, index) => (
-              <li key={index} className="mb-1">
-                {file.name}
-              </li>
+              <li key={index} className="mb-1">{file.name}</li>
             ))}
           </ul>
           <button
