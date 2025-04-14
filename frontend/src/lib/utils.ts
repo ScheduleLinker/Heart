@@ -36,6 +36,7 @@ export const FileUploadHandler = async (isFileArray:File | File[]) => {
 
     const data = await response.json();
     //store the data locally 
+    localStorage.clear()
     localStorage.setItem('parsed-ics', JSON.stringify(data));
   
 
