@@ -50,15 +50,14 @@ export default function GlobalDragDrop({
     // Do nothing else; the overlay is already shown from dragEnter.
   }, []);
 
-  const handleDrop = useCallback( (e: DragEvent) => {
+  const handleDrop = useCallback(async (e: DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-
-    // Reset the drag counter and remove the overlay
+  
     setDragCounter(0);
     setIsDragging(false);
     setError(null);
-
+  
     if (e.dataTransfer?.files && e.dataTransfer.files.length > 0) {
       const droppedFiles = Array.from(e.dataTransfer.files);
       const validFiles = droppedFiles.filter(file => {
@@ -66,29 +65,37 @@ export default function GlobalDragDrop({
         const fileName = file.name.toLowerCase();
         return fileType === 'text/calendar' || fileName.endsWith('.ics');
       });
-
+  
       if (validFiles.length === 0) {
         setError('Only .ics files are allowed');
         setTimeout(() => setError(null), 3000);
         return;
       }
-
-      setFiles(prevFiles => [...prevFiles, ...validFiles]);
-      // send to the backend for processing
-      FileUploadHandler(files);
-
-
-      const data  = localStorage.getItem('parsed-ics');
-      localStorageDataValidation(data);
-      try{
-        e.dataTransfer.clearData();
-      }catch(error) {
-        console.error("Error clearing local storage", error);
+  
+      //use `validFiles` directly
+      try {
+        await FileUploadHandler(validFiles);
+  
+        const data = localStorage.getItem('parsed-ics');
+        localStorageDataValidation(data);
+  
+        navigate("/workspace");
+      } catch (error) {
+        console.error("Upload Failed:", error);
+        setError("Upload failed. Please try again.");
       }
-    
-      navigate("/workspace");
+  
+      try {
+        e.dataTransfer.clearData();
+      } catch (error) {
+        console.error("Error clearing drag data:", error);
+      }
+  
+      // Optionally track files in UI
+      setFiles(prev => [...prev, ...validFiles]);
     }
   }, []);
+  
 
   // Setup global event listeners on the document body
   useEffect(() => {

@@ -59,7 +59,13 @@ const Workspace = () => {
     if (!uploadedData) return { grouped: {}, availableDates: [] };
 
     const parsedJson = JSON.parse(uploadedData);
-    const grouped = groupEventsByDate(parsedJson.data.events);
+
+    //extract array of objects
+    if (!Array.isArray(parsedJson) || !parsedJson[0]?.data?.events) {
+      return { grouped: {}, availableDates: [] };
+    }
+    const grouped = groupEventsByDate(parsedJson[0].data.events);
+    
     const availableDates = Object.keys(grouped).sort();
     return { grouped, availableDates };
   }, [uploadedData]);
