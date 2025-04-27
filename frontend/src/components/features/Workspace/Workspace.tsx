@@ -66,7 +66,7 @@ function BubbleColor ({ data }) {
 
 // 🌐 Bubble node component
 const BubbleNode = ({ data }) => (
-  <div className={"bg-gradient-to-b " + "from-purple-950 to-purple-900" + " w-25 h-25 rounded-full text-black flex items-center justify-center shadow-lg text-sm text-center"}>
+  <div className={"bg-gradient-to-b " + BubbleColor({data}) + " w-25 h-25 rounded-full text-black flex items-center justify-center shadow-lg text-sm text-center"}>
     {data.label}
   </div>
 );
