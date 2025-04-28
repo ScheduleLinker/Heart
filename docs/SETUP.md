@@ -25,62 +25,103 @@
 
 - Result(200 Ok)-`/api/ics-upload`:
 ```
-{
-  "uid": "44ae5f88-520c-436b-8f64-3bd9b2fb1fa6",
-  "message": "Ics file uploaded successfully.",
-  "status": "Success",
-  "data": {
-    "events": [
-      {
-        "summary": "Oral Presentations COM 312 108",
-        "description": {
-          "CRN": "11827",
-          "Credit Hours": "3.0",
-          "Level": "Undergraduate",
-          "Instructor": "Raufova, Nigora (Primary)"
+[
+  {
+    "uid": "6828e6c7-bfd2-41f6-b9c0-6e4399563162",
+    "message": "Ics file uploaded successfully.",
+    "status": "Success",
+    "data": {
+      "events": [
+        {
+          "summary": "Oral Presentations COM 312 108",
+          "description": {
+            "CRN": "11827",
+            "Credit Hours": "3.0",
+            "Level": "Undergraduate",
+            "Instructor": "Raufova, Nigora (Primary)"
+          },
+          "start": "2023-01-19T18:00:00-05:00",
+          "end": "2023-01-19T20:50:00-05:00",
+          "location": "Campus: Newark Building: Central King Building Room: 214",
+          "recurrence": {
+            "FREQ": "WEEKLY",
+            "UNTIL": "20230511T225900",
+            "BYDAY": "TH"
+          }
         },
-        "start": "2023-01-19T18:00:00-05:00",
-        "end": "2023-01-19T20:50:00-05:00",
-        "location": "Campus: Newark Building: Central King Building Room: 214"
-      },
-      {
-        "summary": "Roadmap to Computing CS 100 012",
-        "description": {
-          "CRN": "11872",
-          "Credit Hours": "3.0",
-          "Level": "Undergraduate",
-          "Instructor": "Islam, Akm Z (Primary)"
+        {
+          "summary": "Roadmap to Computing CS 100 012",
+          "description": {
+            "CRN": "11872",
+            "Credit Hours": "3.0",
+            "Level": "Undergraduate",
+            "Instructor": "Islam, Akm Z (Primary)"
+          },
+          "start": "2023-01-18T13:00:00-05:00",
+          "end": "2023-01-18T14:20:00-05:00",
+          "location": "Campus: Newark Building: Central King Building Room: 212",
+          "recurrence": {
+            "FREQ": "WEEKLY",
+            "UNTIL": "20230511T225900",
+            "BYDAY": "WE,FR"
+          }
         },
-        "start": "2023-01-18T13:00:00-05:00",
-        "end": "2023-01-18T14:20:00-05:00",
-        "location": "Campus: Newark Building: Central King Building Room: 212"
-      },
-      {
-        "summary": "Scripting for System Administration IT 240 002",
-        "description": {
-          "CRN": "14057",
-          "Credit Hours": "3.0",
-          "Level": "Undergraduate",
-          "Instructor": "Vohra, Rosemina A. (Primary)"
+        {
+          "summary": "Scripting for System Administration IT 240 002",
+          "description": {
+            "CRN": "14057",
+            "Credit Hours": "3.0",
+            "Level": "Undergraduate",
+            "Instructor": "Vohra, Rosemina A. (Primary)"
+          },
+          "start": "2023-01-18T10:00:00-05:00",
+          "end": "2023-01-18T11:20:00-05:00",
+          "location": "Campus: Newark Building: Kupfrian Hall Room: 106",
+          "recurrence": {
+            "FREQ": "WEEKLY",
+            "UNTIL": "20230511T225900",
+            "BYDAY": "WE,FR"
+          }
         },
-        "start": "2023-01-18T10:00:00-05:00",
-        "end": "2023-01-18T11:20:00-05:00",
-        "location": "Campus: Newark Building: Kupfrian Hall Room: 106"
-      },
-      {
-        "summary": "Computing &amp; Effective Com YWCC 207 022",
-        "description": {
-          "CRN": "15662",
-          "Credit Hours": "1.0",
-          "Level": "Undergraduate",
-          "Instructor": "McCormick, Shanna A. (Primary)"
-        },
-        "start": "2023-01-19T11:30:00-05:00",
-        "end": "2023-01-19T12:50:00-05:00",
-        "location": "Campus: Newark Building: Central King Building Room: 206"
-      }
-    ]
+        {
+          "summary": "Computing &amp; Effective Com YWCC 207 022",
+          "description": {
+            "CRN": "15662",
+            "Credit Hours": "1.0",
+            "Level": "Undergraduate",
+            "Instructor": "McCormick, Shanna A. (Primary)"
+          },
+          "start": "2023-01-19T11:30:00-05:00",
+          "end": "2023-01-19T12:50:00-05:00",
+          "location": "Campus: Newark Building: Central King Building Room: 206",
+          "recurrence": {
+            "FREQ": "WEEKLY",
+            "UNTIL": "20230511T225900",
+            "BYDAY": "TH"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "uid": "037070f5-3e10-4ca7-af7e-dcd9252912ea",
+    "message": "Ics file uploaded successfully.",
+    "status": "Success",
+    "data": {
+      "events": [
+        {
+          "summary": "Store sell",
+          "description": {},
+          "start": "2025-02-26T15:00:00+00:00",
+          "end": "2025-06-19T02:00:00+00:00",
+          "location": "Njit",
+          "recurrence": null
+        }
+      ]
+    }
   }
-}
+]
 ```
 
+## How to run backend tests:
+1. After initializing the packages, run this command in your console: `pytest backend/tests` to run all of the backend python tests.

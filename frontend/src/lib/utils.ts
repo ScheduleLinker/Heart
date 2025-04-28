@@ -19,10 +19,10 @@ export const FileUploadHandler = async (isFileArray:File | File[]) => {
   if (Array.isArray(isFileArray)) {
     //handle the array 
     for (let fileIndex = 0; fileIndex < isFileArray.length; fileIndex++) {
-      formData.append("ics_file", isFileArray[fileIndex]);
+      formData.append("ics_files", isFileArray[fileIndex]);
     }
   }else {
-    formData.append("ics_file", isFileArray);
+    formData.append("ics_files", isFileArray);
   }
   try {
     const response = await fetch(`${API_URL}/api/ics-upload`, { 

@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import Workspace from './Workspace'; // Adjust the import path as needed
-
+import Workspace from './Workspace';
 describe('Workspace', () => {
   // Setup and teardown for localStorage mock
   const localStorageMock = (() => {
