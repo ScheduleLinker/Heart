@@ -1,5 +1,23 @@
-# Manual Start:
-## How To Initialize And Run The FastAPI Endpoints
+# Step 1:
+## Creating a `.env` file to store the api route
+ In the `Heart` directory:
+  - cd `frontend`
+  - create a new called `.env` and paste this:
+  - `VITE_BACKEND_URL = "http://localhost:8000"` 
+
+# Step 2:
+## Option 1: How To Run Project using Docker-Recommended
+   - Make sure Docker is installed on host system
+   - In the `Heart` directory,
+   - Run: `docker-compose up --build`
+   - To stop docker: `docker-compose down`
+
+## Option 2:Manual Start
+### How to start Frontend server from the terminal:
+ - cd `frontend`
+ - run this command `npm run dev`
+
+### How To Initialize And Run The FastAPI Endpoints
 
 1. First you will need to initialize a local python environment in the root directory of the project. Run `python3 -m venv venv` while
    in <b>Heart</b> folder.
@@ -123,5 +141,5 @@
 ]
 ```
 
-## How to run backend tests:
+### How to run backend tests:
 1. After initializing the packages, run this command in your console: `pytest backend/tests` to run all of the backend python tests.
