@@ -1,5 +1,7 @@
 import { cn } from "@/lib/utils"
 
+//skeleton
+
 function Skeleton({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
