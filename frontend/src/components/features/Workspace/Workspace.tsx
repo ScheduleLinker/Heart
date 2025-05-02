@@ -1,205 +1,359 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import ReactFlow, {
+  Background,
+  Controls,
+  addEdge,
+  useNodesState,
+  useEdgesState,
+  Node,
+  Edge,
+  ConnectionLineType,
+} from 'reactflow';
 import dagre from 'dagre';
-import ReactFlow, { Background, Controls, MiniMap, useNodesState, useEdgesState } from 'reactflow';
 import 'reactflow/dist/style.css';
-import { format } from 'date-fns';
-
-function BubbleColor ({ data }) {
-  const startHour = Number(String(data.start).substring(16,18))
-  const endHour = Number(String(data.end).substring(16,18))
-  var startColor = ""
-  var endColor = ""
-  switch (startHour) {
-    case (0): startColor = "from-violet-950 "; break;
-    case (1): startColor = "from-purple-950 "; break;
-    case (2): startColor = "from-violet-900 "; break;
-    case (3): startColor = "from-purple-900 "; break;
-    case (4): startColor = "from-fuschia-900 "; break;
-    case (5): startColor = "from-fuschia-800 "; break;
-    case (6): startColor = "from-pink-900 "; break;
-    case (7): startColor = "from-rose-900 "; break;
-    case (8): startColor = "from-pink-800 "; break;
-    case (9): startColor = "from-yellow-400 "; break;
-    case (10): startColor = "from-amber-300 "; break;
-    case (11): startColor = "from-yellow-300 "; break;
-    case (12): startColor = "from-cyan-300 "; break;
-    case (13): startColor = "from-cyan-400 "; break;
-    case (14): startColor = "from-cyan-500 "; break;
-    case (15): startColor = "from-sky-400 "; break;
-    case (16): startColor = "from-sky-500 "; break;
-    case (17): startColor = "from-sky-600 "; break;
-    case (18): startColor = "from-blue-600 "; break;
-    case (19): startColor = "from-blue-900 "; break;
-    case (20): startColor = "from-orange-600 "; break;
-    case (21): startColor = "from-red-600 "; break;
-    case (22): startColor = "from-purple-600 "; break;
-    case (23): startColor = "from-purple-700 "; break;
-  }
-  switch (endHour) {
-    case (0): endColor = "to-violet-950"; break;
-    case (1): endColor = "to-purple-950"; break;
-    case (2): endColor = "to-violet-900"; break;
-    case (3): endColor = "to-purple-900"; break;
-    case (4): endColor = "to-fuschia-900"; break;
-    case (5): endColor = "to-fuschia-800"; break;
-    case (6): endColor = "to-pink-900"; break;
-    case (7): endColor = "to-rose-900"; break;
-    case (8): endColor = "to-pink-800"; break;
-    case (9): endColor = "to-yellow-400"; break;
-    case (10): endColor = "to-amber-300"; break;
-    case (11): endColor = "to-yellow-300"; break;
-    case (12): endColor = "to-cyan-300"; break;
-    case (13): endColor = "to-cyan-400"; break;
-    case (14): endColor = "to-cyan-500"; break;
-    case (15): endColor = "to-sky-400"; break;
-    case (16): endColor = "to-sky-500"; break;
-    case (17): endColor = "to-sky-600"; break;
-    case (18): endColor = "to-blue-600"; break;
-    case (19): endColor = "to-blue-900"; break;
-    case (20): endColor = "to-orange-600"; break;
-    case (21): endColor = "to-red-600"; break;
-    case (22): endColor = "to-purple-600"; break;
-    case (23): endColor = "to-purple-700"; break;
-  }
-  return (startColor + endColor)
-}
-
-// 🌐 Bubble node component
-const BubbleNode = ({ data }) => (
-  <div className={"bg-gradient-to-b " + BubbleColor({data}) + " w-25 h-25 rounded-full text-black flex items-center justify-center shadow-lg text-sm text-center"}>
-    {data.label}
-  </div>
-);
-
-const nodeTypes = {
-  bubble: BubbleNode,
-};
+import { parseISO, format } from 'date-fns';
+import RootNode from '@/components/RootNode';
+import ClassNode from '@/components/ClassNode';
 
 const nodeWidth = 180;
-const nodeHeight = 60;
+const nodeHeight = 80;
 
-function layoutNodes(nodes, edges) {
+// Helper function to get day of week (0-6 for Sunday-Saturday)
+const getDayOfWeek = (date) => {
+  const d = new Date(date);
+  return d.getDay();
+};
+
+// Helper function to check if two dates fall on the same day of the week
+const isSameDayOfWeek = (date1, date2) => {
+  const day1 = getDayOfWeek(date1);
+  const day2 = getDayOfWeek(date2);
+  return day1 === day2;
+};
+
+// Debug function to log date comparisons
+const debugDates = (date1, date2, isMatch) => {
+  console.log(`Comparing days of week: 
+    Date1: ${new Date(date1).toISOString()} (${new Date(date1).toLocaleDateString('en-US', { weekday: 'long' })})
+    Date2: ${new Date(date2).toISOString()} (${new Date(date2).toLocaleDateString('en-US', { weekday: 'long' })})
+    Same day of week: ${isMatch}
+  `);
+};
+
+// Lay out nodes with Dagre
+const layoutNodes = (nodes: Node[], edges: Edge[]): Node[] => {
   const g = new dagre.graphlib.Graph();
-  g.setGraph({ rankdir: 'TB' }); // Top -> Bottom
+  g.setGraph({ rankdir: 'TB', nodesep: 50, ranksep: 100 });
   g.setDefaultEdgeLabel(() => ({}));
-
-  nodes.forEach(node => g.setNode(node.id, { width: nodeWidth, height: nodeHeight }));
-  edges.forEach(edge => g.setEdge(edge.source, edge.target));
+  nodes.forEach((n) => g.setNode(n.id, { width: nodeWidth, height: nodeHeight }));
+  edges.forEach((e) => g.setEdge(e.source, e.target));
   dagre.layout(g);
-
-  return nodes.map(node => {
-    const { x, y } = g.node(node.id);
-    return {
-      ...node,
-      position: { x, y },
-    };
+  return nodes.map((node) => {
+    const { x, y } = g.node(node.id)!;
+    return { ...node, position: { x, y } };
   });
-}
+};
 
-function groupEventsByDate(events) {
-  const groups = {};
-  events.forEach((event, i) => {
-    const dateKey = format(new Date(event.start), 'MM-dd-yyyy');
-    if (!groups[dateKey]) groups[dateKey] = [];
-    groups[dateKey].push({
-      ...event,
-      id: `event-${i}`,
-      start: new Date(event.start),
-      end: new Date(event.end),
-    });
-  });
-  return groups;
-}
+const nodeTypes = { root: RootNode, class: ClassNode };
 
-const Workspace = () => {
-  const uploadedData = localStorage.getItem('parsed-ics');
-  const [selectedDate, setSelectedDate] = useState(null);
+// Colors for Sunday (0) → Saturday (6)
+const weekdayColors = [
+  '#e53e3e', // Sunday – red
+  '#dd6b20', // Monday – orange
+  '#d69e2e', // Tuesday – yellow
+  '#38a169', // Wednesday – green
+  '#319795', // Thursday – teal
+  '#3182ce', // Friday – blue
+  '#805ad5', // Saturday – purple
+];
 
-  const { grouped, availableDates } = useMemo(() => {
-    if (!uploadedData) return { grouped: {}, availableDates: [] };
+export default function Workspace() {
+  const icsRaw = localStorage.getItem('parsed-ics');
+  const [rootLabel, setRootLabel] = useState('My Schedule');
+  const [nodes, setNodes, onNodesChange] = useNodesState<Node[]>([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState<Edge[]>([]);
+  const history = useRef<{ nodes: Node[]; edges: Edge[] }[]>([]);
+  const [debugInfo, setDebugInfo] = useState("");
 
-    const parsedJson = JSON.parse(uploadedData);
+  // Date picker state (YYYY-MM-DD)
+  const [selectedDate, setSelectedDate] = useState(
+    new Date().toISOString().slice(0, 10)
+  );
 
-    //extract array of objects
-    if (!Array.isArray(parsedJson) || !parsedJson[0]?.data?.events) {
-      return { grouped: {}, availableDates: [] };
-    }
-    const grouped = groupEventsByDate(parsedJson[0].data.events);
+  // Snapshot helper
+  const saveSnapshot = (n: Node[], e: Edge[]) => {
+    history.current.push({ nodes: n, edges: e });
+    localStorage.setItem('schedule-state', JSON.stringify({ nodes: n, edges: e }));
+  };
+
+  // Initial build or restore
+  useEffect(() => {
+    console.log("Building/restoring with selectedDate:", selectedDate);
     
-    const availableDates = Object.keys(grouped).sort();
-    return { grouped, availableDates };
-  }, [uploadedData]);
-
-  const { nodes, edges } = useMemo(() => {
-    if (!selectedDate || !grouped[selectedDate]) return { nodes: [], edges: [] };
-
-    const dayEvents = grouped[selectedDate].sort((a, b) => a.start - b.start);
-    const nodes = [];
-    const edges = [];
-
-    for (let i = 0; i < dayEvents.length; i++) {
-      const e = dayEvents[i];
-      nodes.push({
-        id: e.id,
-        type: 'bubble',
-        data: { label: e.summary, start: e.start, end: e.end },
-        position: { x: 0, y: 0 },
-      });
-
-      for (let j = i - 1; j >= 0; j--) {
-        if (dayEvents[j].end <= e.start) {
-          edges.push({
-            id: `e-${dayEvents[j].id}-${e.id}`,
-            source: dayEvents[j].id,
-            target: e.id,
-          });
-          break;
+    // Try restore from storage
+    const saved = localStorage.getItem('schedule-state');
+    if (saved) {
+      try {
+        const p = JSON.parse(saved);
+        if (Array.isArray(p.nodes) && p.nodes.length > 1) {
+          setNodes(p.nodes);
+          setEdges(p.edges);
+          
+          // Even when restoring, update node selection based on current date
+          setTimeout(() => updateNodeSelection(selectedDate), 100);
+          return;
         }
+      } catch (err) {
+        console.error("Failed to restore state:", err);
       }
     }
 
-    return {
-      nodes: layoutNodes(nodes, edges),
-      edges,
+    if (!icsRaw) {
+      console.log("No ICS data found");
+      return;
+    }
+    
+    let parsedIcs: any;
+    try {
+      parsedIcs = JSON.parse(icsRaw);
+    } catch (err) {
+      console.error('Invalid parsed-ics JSON:', err);
+      return;
+    }
+
+    const rawEvents = Array.isArray(parsedIcs)
+      ? parsedIcs[0]?.data?.events
+      : parsedIcs?.data?.events;
+    
+    if (!Array.isArray(rawEvents)) {
+      console.error("No events found in ICS data");
+      return;
+    }
+
+    console.log(`Processing ${rawEvents.length} events`);
+    
+    // Get the day of week for selected date
+    const selectedDayOfWeek = getDayOfWeek(selectedDate);
+    const selectedDayName = new Date(selectedDate).toLocaleDateString('en-US', { weekday: 'long' });
+    console.log(`Selected day of week: ${selectedDayOfWeek} (${selectedDayName})`);
+
+    const genNodes: Node[] = [
+      {
+        id: 'root',
+        type: 'root',
+        data: { label: rootLabel, setLabel: setRootLabel },
+        position: { x: 0, y: 0 },
+        sourcePosition: 'bottom',
+        targetPosition: 'top',
+      },
+    ];
+    const genEdges: Edge[] = [];
+    const seen: Record<string, string> = {};
+
+    rawEvents.forEach((e: any, idx: number) => {
+      const id = `event-${idx}`;
+      const startIso = e.start;
+      const startDate = parseISO(startIso);
+      const eventDayOfWeek = getDayOfWeek(startDate);
+      const eventDayName = startDate.toLocaleDateString('en-US', { weekday: 'long' });
+      
+      // Compare days of week instead of actual dates
+      const isMatch = eventDayOfWeek === selectedDayOfWeek;
+      
+      // Debug
+      debugDates(startDate, selectedDate, isMatch);
+      
+      const label = e.summary;
+      let parentId = 'root';
+
+      // detect sub‑class
+      Object.entries(seen).forEach(([sid, slog]) => {
+        const mainNorm = slog.toLowerCase().replace(/\W/g, '');
+        const curNorm = label.toLowerCase().replace(/\W/g, '');
+        const isSub = /recitation|lab/.test(label.toLowerCase());
+        if (isSub && curNorm.includes(mainNorm) && curNorm !== mainNorm) {
+          parentId = sid;
+        }
+      });
+
+      genNodes.push({
+        id,
+        type: 'class',
+        data: {
+          label,
+          start: startIso,
+          isSelected: isMatch,
+          highlightColor: weekdayColors[eventDayOfWeek],
+          // Add debug info to see days in the nodes
+          debugDate: eventDayName,
+          time: format(startDate, 'h:mm a')
+        },
+        position: { x: 0, y: 0 },
+        sourcePosition: 'bottom',
+        targetPosition: 'top',
+      });
+
+      genEdges.push({
+        id: `e-${parentId}-${id}`,
+        source: parentId,
+        target: id,
+        type: 'default',
+      });
+
+      seen[id] = label;
+    });
+
+    const laid = layoutNodes(genNodes, genEdges);
+    setNodes(laid);
+    setEdges(genEdges);
+    saveSnapshot(laid, genEdges);
+    
+    // Update debug info
+    setDebugInfo(`Selected day: ${new Date(selectedDate).toLocaleDateString('en-US', { weekday: 'long' })}, Events: ${rawEvents.length}`);
+    
+  }, [icsRaw, rootLabel]);
+
+  // Function to update node selection based on day of week
+  const updateNodeSelection = (date) => {
+    console.log("Updating node selection for date:", date);
+    const selectedDayOfWeek = getDayOfWeek(date);
+    const selectedDayName = new Date(date).toLocaleDateString('en-US', { weekday: 'long' });
+    
+    setNodes((nds) =>
+      nds.map((n) => {
+        if (n.type !== 'class') return n;
+        
+        const eventDate = parseISO(n.data.start);
+        const eventDayOfWeek = getDayOfWeek(eventDate);
+        const isMatch = eventDayOfWeek === selectedDayOfWeek;
+        
+        // Debug
+        if (n.data.label) {
+          debugDates(eventDate, date, isMatch);
+        }
+        
+        return {
+          ...n,
+          data: {
+            ...n.data,
+            isSelected: isMatch,
+            highlightColor: weekdayColors[eventDayOfWeek],
+            debugDate: eventDate.toLocaleDateString('en-US', { weekday: 'long' }),
+            time: format(eventDate, 'h:mm a')
+          },
+        };
+      })
+    );
+    
+    // Update debug info
+    setDebugInfo(`Selected day: ${selectedDayName}`);
+  };
+
+  // Handle date changes
+  useEffect(() => {
+    updateNodeSelection(selectedDate);
+  }, [selectedDate]);
+
+  // Ctrl+Z undo
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.key === 'z') {
+        e.preventDefault();
+        history.current.pop(); // drop current
+        const prev = history.current.pop(); // get last snapshot
+        if (prev) {
+          setNodes(prev.nodes);
+          setEdges(prev.edges);
+          // After restoring, update selection based on current date
+          setTimeout(() => updateNodeSelection(selectedDate), 100);
+        }
+      }
     };
-  }, [selectedDate, grouped]);
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [selectedDate]);
+
+  // Reset layout
+  const resetLayout = () => {
+    localStorage.removeItem('schedule-state');
+    window.location.reload();
+  };
+
+  // Force update - helper button for debugging
+  const forceUpdateSelection = () => {
+    updateNodeSelection(selectedDate);
+  };
 
   return (
-    <div className="relative min-h-screen p-4 bg-gray-100 dark:bg-gray-900">
-      {uploadedData ? (
-        <>
-          <div className="mb-4">
-            <label className="mr-2 text-gray-700 dark:text-gray-300">Select Date:</label>
-            <select
-              className="border p-2 rounded"
-              onChange={(e) => setSelectedDate(e.target.value)}
-              value={selectedDate || ''}
-            >
-              <option value="" disabled>Select a date</option>
-              {availableDates.map(date => (
-                <option key={date} value={date}>{date}</option>
-              ))}
-            </select>
+    <div className="h-screen w-full bg-gray-900 text-white p-4">
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-xl font-bold">Schedule Viewer</h2>
+        <div className="flex items-center space-x-2">
+          <label htmlFor="date-picker">Highlight Day:</label>
+          <input
+            id="date-picker"
+            type="date"
+            value={selectedDate}
+            onChange={(e) => setSelectedDate(e.target.value)}
+            className="px-2 py-1 rounded bg-gray-700"
+          />
+          <div className="bg-gray-700 px-2 py-1 rounded">
+            {new Date(selectedDate).toLocaleDateString('en-US', { weekday: 'long' })}
           </div>
+          <button
+            className="bg-blue-600 px-4 py-2 rounded hover:bg-blue-700"
+            onClick={forceUpdateSelection}
+          >
+            Update
+          </button>
+          <button
+            className="bg-red-600 px-4 py-2 rounded hover:bg-red-700"
+            onClick={resetLayout}
+          >
+            Reset
+          </button>
+        </div>
+      </div>
+      
+      {/* Debug info display */}
+      <div className="bg-gray-800 p-2 mb-2 rounded text-xs">
+        {debugInfo}
+      </div>
 
-          <div className="h-[700px] border rounded bg-white dark:bg-gray-800">
-            <ReactFlow
-              nodes={nodes}
-              edges={edges}
-              fitView
-              nodeTypes={nodeTypes}
-            >
-              
-              <Controls />
-              <Background />
-            </ReactFlow>
-          </div>
-        </>
-      ) : (
-        <p className="text-gray-500 dark:text-gray-400">No data uploaded yet</p>
-      )}
+      <div className="h-[85%] border border-gray-700 rounded bg-gray-800">
+        <ReactFlow
+          nodes={nodes}
+          edges={edges}
+          nodeTypes={nodeTypes}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          onConnect={(p) => {
+            saveSnapshot(nodes, edges);
+            const ups = addEdge({ ...p, type: 'default' }, edges);
+            setEdges(ups);
+          }}
+          onNodeDragStart={() => saveSnapshot(nodes, edges)}
+          onEdgeUpdate={(oldE, newC) => {
+            saveSnapshot(nodes, edges);
+            const ups = edges
+              .filter((e) => e.id !== oldE.id)
+              .concat({ ...newC, id: `e-${newC.source}-${newC.target}`, type: 'default' });
+            const rel = layoutNodes(nodes, ups);
+            setNodes(rel);
+            setEdges(ups);
+          }}
+          onEdgeUpdateEnd={(_, edge) =>
+            setEdges((eds) => eds.filter((e) => e.id !== edge.id))
+          }
+          connectionLineType={ConnectionLineType.Bezier}
+          connectionLineStyle={{ stroke: 'cyan', strokeWidth: 2 }}
+          fitView
+          className="bg-gray-900"
+        >
+          <Background color="#444" gap={16} />
+          <Controls />
+        </ReactFlow>
+      </div>
     </div>
   );
-};
-
-export default Workspace;
+}
