@@ -1,7 +1,19 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import dagre from 'dagre';
-import { ReactFlow, Background, Controls } from '@xyflow/react';
+import { ReactFlow, Background, Controls, useNodesState } from '@xyflow/react';
 import 'reactflow/dist/style.css';
+import SidebarComponent from '../Sidebar/SidebarComponent';
+import {
+  Dialog,
+  DialogTrigger,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+
 
 function BubbleColor({ data }) {
   const startHour = Number(String(data.start).substring(16, 18));
@@ -77,8 +89,9 @@ const nodeTypes = {
   bubble: BubbleNode,
 };
 
-const nodeWidth = 180;
-const nodeHeight = 60;
+const nodeWidth = 190;
+const nodeHeight = 70;
+const nodeVerticalGap = 80;
 
 function layoutNodes(nodes, edges) {
   const g = new dagre.graphlib.Graph();
@@ -113,68 +126,152 @@ function generateBubbleNode(event, index) {
 
 
 const Workspace = () => {
-  const uploadedData = localStorage.getItem('parsed-ics');
+  const uploadedData = localStorage.getItem("parsed-ics");
+  const [nodes, setNodes, onNodesChange] = useNodesState([]);
+  const [edges, setEdges] = useState([]);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [newBubbleLabel, setNewBubbleLabel] = useState("");
 
-  const { nodes, edges } = useMemo(() => {
-    if (!uploadedData) return { nodes: [], edges: [] };
+  const handleConfirmCreate = () => {
+    if (!newBubbleLabel.trim()) return;
+  
+    const index = nodes.length;
+    const newEvent = {
+      summary: newBubbleLabel.trim(),
+      start: new Date(),
+      end: new Date(),
+    };
+  
+    // Determine position: below the last node or at (0, 0) if it's the first
+    const lastNode = nodes[nodes.length - 1];
+    const newPosition = lastNode
+      ? {
+          x: lastNode.position.x,
+          y: lastNode.position.y + nodeHeight + nodeVerticalGap,
+        }
+      : { x: 0, y: 0 };
+  
+    const newNode = {
+      ...generateBubbleNode(newEvent, index),
+      position: newPosition,
+    };
+  
+    setNodes((prev) => [...prev, newNode]);
+  
+    // Reset dialog
+    setShowCreateDialog(false);
+    setNewBubbleLabel("");
+  };
+  
+  const createBubble = () => {
+    if (!showCreateDialog) {
+      setShowCreateDialog(true);
+    }
+  };
+
+  useEffect(() => {
+    if (nodes.length > 0) {
+      const simplifiedNodes = nodes.map(({ id, data, position, type }) => ({
+        id,
+        data,
+        position,
+        type,
+      }));
+      localStorage.setItem("saved-nodes", JSON.stringify(simplifiedNodes));
+      localStorage.setItem("saved-edges", JSON.stringify(edges));
+    }
+  }, [nodes, edges]); // ← track `edges` too
+  
+
+  useEffect(() => {
+    const savedNodesJSON = localStorage.getItem("saved-nodes");
+    const savedEdgesJSON = localStorage.getItem("saved-edges");
+  
+    if (savedNodesJSON) {
+      const savedNodes = JSON.parse(savedNodesJSON).map((node) => ({
+        ...node,
+        data: {
+          ...node.data,
+          start: new Date(node.data.start),
+          end: new Date(node.data.end),
+        },
+      }));
+      setNodes(savedNodes);
+  
+      if (savedEdgesJSON) {
+        const savedEdges = JSON.parse(savedEdgesJSON);
+        setEdges(savedEdges);
+      }
+  
+      return; // Don't parse ICS if saved data exists
+    }
+
+    if (!uploadedData) return;
 
     const parsedJson = JSON.parse(uploadedData);
-
-    if (!Array.isArray(parsedJson) || !parsedJson[0]?.data?.events) {
-      return { nodes: [], edges: [] };
-    }
+    if (!Array.isArray(parsedJson) || !parsedJson[0]?.data?.events) return;
 
     const allEvents = parsedJson[0].data.events
-    .map((event, i) => {
-      const parsedEvent = {
-        ...event,
-        start: new Date(event.start),
-        end: new Date(event.end),
-      };
-      return generateBubbleNode(parsedEvent, i);
-    })
-    .sort((a, b) => a.data.start - b.data.start);
+      .map((event, i) => {
+        const parsedEvent = {
+          ...event,
+          start: new Date(event.start),
+          end: new Date(event.end),
+        };
+        return generateBubbleNode(parsedEvent, i);
+      })
+      .sort((a, b) => a.data.start - b.data.start);
 
-    const nodes = [...allEvents];
-const edges = [];
+    const newEdges = [];
 
-for (let i = 0; i < allEvents.length; i++) {
-  const current = allEvents[i];
-  for (let j = i - 1; j >= 0; j--) {
-    if (allEvents[j].data.end <= current.data.start) {
-      edges.push({
-        id: `e-${allEvents[j].id}-${current.id}`,
-        source: allEvents[j].id,
-        target: current.id,
-      });
-      break;
+    for (let i = 0; i < allEvents.length; i++) {
+      const current = allEvents[i];
+      for (let j = i - 1; j >= 0; j--) {
+        if (allEvents[j].data.end <= current.data.start) {
+          newEdges.push({
+            id: `e-${allEvents[j].id}-${current.id}`,
+            source: allEvents[j].id,
+            target: current.id,
+          });
+          break;
+        }
+      }
     }
-  }
-}
 
-    return {
-      nodes: layoutNodes(nodes, edges),
-      edges,
-    };
+    const laidOutNodes = layoutNodes(allEvents, newEdges);
+    setNodes(laidOutNodes);
+    setEdges(newEdges);
   }, [uploadedData]);
 
   return (
-    <div className="relative min-h-screen p-4 bg-gray-100 dark:bg-gray-900">
-      {uploadedData ? (
-        <div className="h-[700px] border rounded bg-white dark:bg-gray-800">
-          <ReactFlow
-            nodes={nodes}
-            edges={edges}
-            fitView
-            nodeTypes={nodeTypes}
-          >
+    <div className="relative min-h-screen p-4 bg-gray-100 dark:bg-gray-900 flex">
+      <SidebarComponent onCreateBubble={createBubble} />
+      <div className="h-[700px] flex-1 border rounded bg-white dark:bg-gray-800">
+        {uploadedData ? (
+          <ReactFlow nodes={nodes} edges={edges} onNodesChange={onNodesChange} fitView nodeTypes={nodeTypes}>
+            <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Name your new bubble</DialogTitle>
+                </DialogHeader>
+                <Input
+                  placeholder="Enter bubble name"
+                  value={newBubbleLabel}
+                  onChange={(e) => setNewBubbleLabel(e.target.value)}
+                />
+                <DialogFooter>
+                  <Button onClick={handleConfirmCreate}>Create</Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+
             <Controls />
             <Background />
           </ReactFlow>
-        </div>
-      ) : (
-        <p className="text-gray-500 dark:text-gray-400">No data uploaded yet</p>
-      )}
+        ) : (
+          <p className="text-gray-500 dark:text-gray-400 p-4">No data uploaded yet</p>
+        )}
+      </div>
     </div>
   );
 };
