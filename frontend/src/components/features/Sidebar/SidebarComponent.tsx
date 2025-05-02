@@ -13,7 +13,7 @@ function SidebarComponent({ onCreateBubble }) {
       {
         title: "Create Bubble",
         icon: CirclePlusIcon,
-        onClick: onCreateBubble,
+        onClick: onCreateBubble, //used to give fuctionality when button is pressed
       },
       {
         title: "Create Connection",
