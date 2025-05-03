@@ -15,10 +15,10 @@ function SidebarComponent({ onCreateBubble }) {
         icon: CirclePlusIcon,
         onClick: onCreateBubble, //used to give fuctionality when button is pressed
       },
-      {
-        title: "Create Connection",
-        icon: ArrowDownRightIcon,
-      },
+      // {
+      //   title: "Create Connection",
+      //   icon: ArrowDownRightIcon,
+      // },
       {
         title: "Download",
         icon: DownloadIcon,

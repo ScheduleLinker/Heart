@@ -1,7 +1,17 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import dagre from 'dagre';
-import { ReactFlow, Background, Controls, useNodesState } from '@xyflow/react';
-import 'reactflow/dist/style.css';
+import { 
+  ReactFlow, 
+  Background, 
+  Controls, 
+  useNodesState, 
+  Handle, 
+  Position,
+  applyEdgeChanges,
+  Connection,
+  addEdge
+} from '@xyflow/react';
+import '@xyflow/react/dist/style.css';
 import SidebarComponent from '../Sidebar/SidebarComponent';
 import {
   Dialog,
@@ -81,6 +91,11 @@ function BubbleColor({ data }) {
 // 🌐 Bubble node component
 const BubbleNode = ({ data }) => (
   <div className={"bg-gradient-to-b " + BubbleColor({ data }) + " w-25 h-25 rounded-full text-black flex items-center justify-center shadow-lg text-sm text-center"}>
+
+  <Handle type="target" position={Position.Top} className="w-2 h-2 bg-black" connectable={true} />
+  <Handle type="source" position={Position.Bottom} className="w-2 h-2 bg-black" connectable={true} />
+  {/* <Handle type="target" position={Position.Right} className="w-2 h-2 bg-black" connectable={true} />
+  <Handle type="source" position={Position.Left className="w-2 h-2 bg-black" connectable={true} /> */}
     {data.label}
   </div>
 );
@@ -131,6 +146,15 @@ const Workspace = () => {
   const [edges, setEdges] = useState([]);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [newBubbleLabel, setNewBubbleLabel] = useState("");
+
+  const onEdgesChange = useCallback(
+    (changes) => setEdges((nds) => applyEdgeChanges(changes, nds)),
+    [],
+  );
+
+  const onConnect = useCallback((connection: Connection) => {
+    setEdges((eds) => addEdge(connection, eds));
+  }, []);
 
   const handleConfirmCreate = () => {
     if (!newBubbleLabel.trim()) return;
@@ -248,7 +272,14 @@ const Workspace = () => {
       <SidebarComponent onCreateBubble={createBubble} />
       <div className="h-[700px] flex-1 border rounded bg-white dark:bg-gray-800">
         {uploadedData ? (
-          <ReactFlow nodes={nodes} edges={edges} onNodesChange={onNodesChange} fitView nodeTypes={nodeTypes}>
+          <ReactFlow 
+          nodes={nodes} 
+          edges={edges} 
+          onNodesChange={onNodesChange} 
+          onEdgesChange={onEdgesChange}
+          onConnect={onConnect} 
+          fitView 
+          nodeTypes={nodeTypes}>
             <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
               <DialogContent className="sm:max-w-md">
                 <DialogHeader>
