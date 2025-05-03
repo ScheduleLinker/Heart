@@ -56,7 +56,7 @@ export function localStorageDataValidation(localStorageData: string | null) {
     try {
     const { message } = JSON.parse(localStorageData);
     // just to alert the customer of good ics file!
-    alert(message);
+    //alert(message);
     console.log(localStorageData);
     } catch(error) {
     console.error("failed to parse the data file: ", error);

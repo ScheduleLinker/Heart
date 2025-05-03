@@ -7,7 +7,7 @@ const RootNode = ({ data }: any) => {
 
   return (
     <div
-      className="relative rounded bg-teal-600 text-white p-3 shadow-md text-center w-[180px]"
+      className="relative rounded bg-yellow-500 text-white p-3 shadow-md text-center w-[180px]"
       onDoubleClick={() => setEditing(true)}
     >
       <Handle type="source" position={Position.Bottom} style={{ background: 'cyan' }} />

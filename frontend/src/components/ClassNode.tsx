@@ -1,55 +1,60 @@
-import React from 'react';
-import { Handle, Position } from 'reactflow';
+// src/components/ClassNode.tsx
+import React, { useState } from "react";
+import { Handle, Position } from "reactflow";
 
 interface ClassNodeData {
   label: string;
   start: string;
   isSelected: boolean;
-  highlightColor: string;
-  // Add debug info
-  debugDate?: string;
+  highlightColor: string; // e.g. "#dd6b20"
+}
+
+function getComplement(hex: string): string {
+  const clean = hex.replace(/^#/, "");
+  const num = parseInt(clean, 16);
+  const inv = 0xffffff ^ num;
+  return `#${inv.toString(16).padStart(6, "0")}`;
 }
 
 export default function ClassNode({ data }: { data: ClassNodeData }) {
-  const { label, isSelected, highlightColor, debugDate } = data;
-  
-  // Very distinct styling for selected nodes
-  const style = isSelected
+  const { label, isSelected, highlightColor } = data;
+  const complement = getComplement(highlightColor);
+  const [hovered, setHovered] = useState(false);
+
+  // Outer wrapper style: gradient background only on hover
+  const outerStyle: React.CSSProperties = hovered
+    ? {
+        background: `linear-gradient(135deg, ${highlightColor}, ${complement})`,
+      }
+    : {};
+
+  // Inner content style: solid background, box shadow if selected
+  const innerStyle: React.CSSProperties = isSelected
     ? {
         backgroundColor: highlightColor,
-        color: '#000000',
-        fontWeight: 'bold',
-        borderWidth: '3px',
-        borderStyle: 'solid',
-        borderColor: '#ffffff',
-        boxShadow: '0 0 10px rgba(255, 255, 255, 0.5)'
+        color: "#000",
+        boxShadow: "0 0 10px rgba(0,0,0,0.6)",
       }
     : {
-        backgroundColor: 'rgba(60, 60, 60, 0.8)',
-        color: '#eeeeee', 
-        borderWidth: '1px',
-        borderStyle: 'solid',
-        borderColor: 'rgba(100, 100, 100, 0.5)'
+        backgroundColor: "rgba(60,60,60,0.8)",
+        color: "#eee",
       };
 
   return (
     <div
-      style={style}
-      className="p-3 rounded shadow w-48 text-center"
+      className="rounded-[20px] p-[4px] transition-all duration-200"
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={outerStyle}
     >
-      <Handle type="target" position={Position.Top} />
-      <div className="font-medium">{label}</div>
-      {isSelected && (
-        <div className="bg-white text-black rounded-full px-2 py-1 mt-1 text-xs font-bold">
-          SELECTED
-        </div>
-      )}
-      {debugDate && (
-        <div className="text-xs mt-1 opacity-70">
-          {debugDate}
-        </div>
-      )}
-      <Handle type="source" position={Position.Bottom} />
+      <div
+        className="rounded-[16px] p-3 shadow w-48 text-center"
+        style={innerStyle}
+      >
+        <Handle type="target" position={Position.Top} />
+        <div className="font-medium">{label}</div>
+        <Handle type="source" position={Position.Bottom} />
+      </div>
     </div>
   );
 }
