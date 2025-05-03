@@ -1,239 +1,359 @@
-import React, { useRef, useState, useMemo } from 'react';
-import { UploadIcon, PlusIcon, MenuIcon, ArrowLeftIcon } from 'lucide-react';
-import WorkspaceFlow from './WorkspaceFlow';
-import { FileUploadHandler, localStorageDataValidation } from '@/lib/utils';
+import React, { useEffect, useRef, useState } from 'react';
+import ReactFlow, {
+  Background,
+  Controls,
+  addEdge,
+  useNodesState,
+  useEdgesState,
+  Node,
+  Edge,
+  ConnectionLineType,
+} from 'reactflow';
 import dagre from 'dagre';
 import 'reactflow/dist/style.css';
-import { format } from 'date-fns';
-
-// 🔵 Color Gradient Based on Start/End Time
-function BubbleColor({ data }) {
-  const startHour = Number(String(data.start).substring(16, 18));
-  const endHour = Number(String(data.end).substring(16, 18));
-
-  const hourToColorStart = {
-    0: "from-violet-950", 1: "from-purple-950", 2: "from-violet-900", 3: "from-purple-900",
-    4: "from-fuschia-900", 5: "from-fuschia-800", 6: "from-pink-900", 7: "from-rose-900",
-    8: "from-pink-800", 9: "from-yellow-400", 10: "from-amber-300", 11: "from-yellow-300",
-    12: "from-cyan-300", 13: "from-cyan-400", 14: "from-cyan-500", 15: "from-sky-400",
-    16: "from-sky-500", 17: "from-sky-600", 18: "from-blue-600", 19: "from-blue-900",
-    20: "from-orange-600", 21: "from-red-600", 22: "from-purple-600", 23: "from-purple-700"
-  };
-  const hourToColorEnd = {
-    0: "to-violet-950", 1: "to-purple-950", 2: "to-violet-900", 3: "to-purple-900",
-    4: "to-fuschia-900", 5: "to-fuschia-800", 6: "to-pink-900", 7: "to-rose-900",
-    8: "to-pink-800", 9: "to-yellow-400", 10: "to-amber-300", 11: "to-yellow-300",
-    12: "to-cyan-300", 13: "to-cyan-400", 14: "to-cyan-500", 15: "to-sky-400",
-    16: "to-sky-500", 17: "to-sky-600", 18: "to-blue-600", 19: "to-blue-900",
-    20: "to-orange-600", 21: "to-red-600", 22: "to-purple-600", 23: "to-purple-700"
-  };
-
-  const startColor = hourToColorStart[startHour] || "from-gray-500";
-  const endColor = hourToColorEnd[endHour] || "to-gray-500";
-
-  return `${startColor} ${endColor}`;
-}
-
-// 🌐 Bubble node component
-const BubbleNode = ({ data }) => (
-  <div className={`bg-gradient-to-b ${BubbleColor({ data })} w-25 h-25 rounded-full text-black flex items-center justify-center shadow-lg text-sm text-center`}>
-    {data.label}
-  </div>
-);
-
-const nodeTypes = {
-  bubble: BubbleNode,
-};
+import { parseISO, format } from 'date-fns';
+import RootNode from '@/components/RootNode';
+import ClassNode from '@/components/ClassNode';
 
 const nodeWidth = 180;
-const nodeHeight = 60;
+const nodeHeight = 80;
 
-function layoutNodes(nodes, edges) {
+// Helper function to get day of week (0-6 for Sunday-Saturday)
+const getDayOfWeek = (date) => {
+  const d = new Date(date);
+  return d.getDay();
+};
+
+// Helper function to check if two dates fall on the same day of the week
+const isSameDayOfWeek = (date1, date2) => {
+  const day1 = getDayOfWeek(date1);
+  const day2 = getDayOfWeek(date2);
+  return day1 === day2;
+};
+
+// Debug function to log date comparisons
+const debugDates = (date1, date2, isMatch) => {
+  console.log(`Comparing days of week: 
+    Date1: ${new Date(date1).toISOString()} (${new Date(date1).toLocaleDateString('en-US', { weekday: 'long' })})
+    Date2: ${new Date(date2).toISOString()} (${new Date(date2).toLocaleDateString('en-US', { weekday: 'long' })})
+    Same day of week: ${isMatch}
+  `);
+};
+
+// Lay out nodes with Dagre
+const layoutNodes = (nodes: Node[], edges: Edge[]): Node[] => {
   const g = new dagre.graphlib.Graph();
-  g.setGraph({ rankdir: 'TB' }); // Top -> Bottom
+  g.setGraph({ rankdir: 'TB', nodesep: 50, ranksep: 100 });
   g.setDefaultEdgeLabel(() => ({}));
-
-  nodes.forEach(node => g.setNode(node.id, { width: nodeWidth, height: nodeHeight }));
-  edges.forEach(edge => g.setEdge(edge.source, edge.target));
+  nodes.forEach((n) => g.setNode(n.id, { width: nodeWidth, height: nodeHeight }));
+  edges.forEach((e) => g.setEdge(e.source, e.target));
   dagre.layout(g);
-
-  return nodes.map(node => {
-    const { x, y } = g.node(node.id);
-    return {
-      ...node,
-      position: { x, y },
-    };
+  return nodes.map((node) => {
+    const { x, y } = g.node(node.id)!;
+    return { ...node, position: { x, y } };
   });
-}
+};
 
-function groupEventsByDate(events) {
-  const groups = {};
-  events.forEach((event, i) => {
-    const dateKey = format(new Date(event.start), 'MM-dd-yyyy');
-    if (!groups[dateKey]) groups[dateKey] = [];
-    groups[dateKey].push({
-      ...event,
-      id: `event-${i}`,
-      start: new Date(event.start),
-      end: new Date(event.end),
-    });
-  });
-  return groups;
-}
+const nodeTypes = { root: RootNode, class: ClassNode };
 
-const Workspace = () => {
-  const uploadedData = localStorage.getItem('parsed-ics');
-  const [selectedDate, setSelectedDate] = useState(null);
+// Colors for Sunday (0) → Saturday (6)
+const weekdayColors = [
+  '#e53e3e', // Sunday – red
+  '#dd6b20', // Monday – orange
+  '#d69e2e', // Tuesday – yellow
+  '#38a169', // Wednesday – green
+  '#319795', // Thursday – teal
+  '#3182ce', // Friday – blue
+  '#805ad5', // Saturday – purple
+];
 
-  const { grouped, availableDates } = useMemo(() => {
-    if (!uploadedData) return { grouped: {}, availableDates: [] };
+export default function Workspace() {
+  const icsRaw = localStorage.getItem('parsed-ics');
+  const [rootLabel, setRootLabel] = useState('My Schedule');
+  const [nodes, setNodes, onNodesChange] = useNodesState<Node[]>([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState<Edge[]>([]);
+  const history = useRef<{ nodes: Node[]; edges: Edge[] }[]>([]);
+  const [debugInfo, setDebugInfo] = useState("");
 
-    const parsedJson = JSON.parse(uploadedData);
-    if (!Array.isArray(parsedJson) || !parsedJson[0]?.data?.events) {
-      return { grouped: {}, availableDates: [] };
-    }
+  // Date picker state (YYYY-MM-DD)
+  const [selectedDate, setSelectedDate] = useState(
+    new Date().toISOString().slice(0, 10)
+  );
 
-    const grouped = groupEventsByDate(parsedJson[0].data.events);
-    const availableDates = Object.keys(grouped).sort();
-    return { grouped, availableDates };
-  }, [uploadedData]);
+  // Snapshot helper
+  const saveSnapshot = (n: Node[], e: Edge[]) => {
+    history.current.push({ nodes: n, edges: e });
+    localStorage.setItem('schedule-state', JSON.stringify({ nodes: n, edges: e }));
+  };
 
-  const [collapsed, setCollapsed] = useState(false);
-  const fileInputRef = useRef(null);
-  const [isUploading, setIsUploading] = useState(false);
-  const flowRef = useRef(null);
-  const [showModal, setShowModal] = useState(false);
-  const [newNodeLabel, setNewNodeLabel] = useState('');
-  const [newNodeType, setNewNodeType] = useState('default');
-
-  // ✅ Now properly inside useMemo
-  const { nodes, edges } = useMemo(() => {
-    if (!selectedDate || !grouped[selectedDate]) {
-      return { nodes: [], edges: [] };
-    }
-
-    const dayEvents = grouped[selectedDate].sort((a, b) => a.start - b.start);
-    const nodes = [];
-    const edges = [];
-
-    for (let i = 0; i < dayEvents.length; i++) {
-      const e = dayEvents[i];
-      nodes.push({
-        id: e.id,
-        type: 'bubble',
-        data: { label: e.summary, start: e.start, end: e.end },
-        position: { x: 0, y: 0 },
-      });
-
-      for (let j = i - 1; j >= 0; j--) {
-        if (dayEvents[j].end <= e.start) {
-          edges.push({
-            id: `e-${dayEvents[j].id}-${e.id}`,
-            source: dayEvents[j].id,
-            target: e.id,
-          });
-          break;
+  // Initial build or restore
+  useEffect(() => {
+    console.log("Building/restoring with selectedDate:", selectedDate);
+    
+    // Try restore from storage
+    const saved = localStorage.getItem('schedule-state');
+    if (saved) {
+      try {
+        const p = JSON.parse(saved);
+        if (Array.isArray(p.nodes) && p.nodes.length > 1) {
+          setNodes(p.nodes);
+          setEdges(p.edges);
+          
+          // Even when restoring, update node selection based on current date
+          setTimeout(() => updateNodeSelection(selectedDate), 100);
+          return;
         }
+      } catch (err) {
+        console.error("Failed to restore state:", err);
       }
     }
 
-    return {
-      nodes: layoutNodes(nodes, edges),
-      edges,
-    };
-  }, [selectedDate, grouped]);
-
-  const handleFileUploadClick = () => fileInputRef.current?.click();
-
-  const handleFileChange = async (event) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    if (!file.name.endsWith('.ics')) {
-      alert('Please select a valid .ics file.');
+    if (!icsRaw) {
+      console.log("No ICS data found");
+      return;
+    }
+    
+    let parsedIcs: any;
+    try {
+      parsedIcs = JSON.parse(icsRaw);
+    } catch (err) {
+      console.error('Invalid parsed-ics JSON:', err);
       return;
     }
 
-    setIsUploading(true);
-    await FileUploadHandler(file);
-    const data = localStorage.getItem('parsed-ics');
-    localStorageDataValidation(data);
-    setIsUploading(false);
-  };
-
-  const handleCreateClick = () => {
-    setShowModal(true);
-  };
-
-  const handleCreateSubmit = () => {
-    if (newNodeLabel.trim()) {
-      flowRef.current?.addNode({ label: newNodeLabel.trim(), type: newNodeType });
-      setNewNodeLabel('');
-      setNewNodeType('default');
-      setShowModal(false);
+    const rawEvents = Array.isArray(parsedIcs)
+      ? parsedIcs[0]?.data?.events
+      : parsedIcs?.data?.events;
+    
+    if (!Array.isArray(rawEvents)) {
+      console.error("No events found in ICS data");
+      return;
     }
+
+    console.log(`Processing ${rawEvents.length} events`);
+    
+    // Get the day of week for selected date
+    const selectedDayOfWeek = getDayOfWeek(selectedDate);
+    const selectedDayName = new Date(selectedDate).toLocaleDateString('en-US', { weekday: 'long' });
+    console.log(`Selected day of week: ${selectedDayOfWeek} (${selectedDayName})`);
+
+    const genNodes: Node[] = [
+      {
+        id: 'root',
+        type: 'root',
+        data: { label: rootLabel, setLabel: setRootLabel },
+        position: { x: 0, y: 0 },
+        sourcePosition: 'bottom',
+        targetPosition: 'top',
+      },
+    ];
+    const genEdges: Edge[] = [];
+    const seen: Record<string, string> = {};
+
+    rawEvents.forEach((e: any, idx: number) => {
+      const id = `event-${idx}`;
+      const startIso = e.start;
+      const startDate = parseISO(startIso);
+      const eventDayOfWeek = getDayOfWeek(startDate);
+      const eventDayName = startDate.toLocaleDateString('en-US', { weekday: 'long' });
+      
+      // Compare days of week instead of actual dates
+      const isMatch = eventDayOfWeek === selectedDayOfWeek;
+      
+      // Debug
+      debugDates(startDate, selectedDate, isMatch);
+      
+      const label = e.summary;
+      let parentId = 'root';
+
+      // detect sub‑class
+      Object.entries(seen).forEach(([sid, slog]) => {
+        const mainNorm = slog.toLowerCase().replace(/\W/g, '');
+        const curNorm = label.toLowerCase().replace(/\W/g, '');
+        const isSub = /recitation|lab/.test(label.toLowerCase());
+        if (isSub && curNorm.includes(mainNorm) && curNorm !== mainNorm) {
+          parentId = sid;
+        }
+      });
+
+      genNodes.push({
+        id,
+        type: 'class',
+        data: {
+          label,
+          start: startIso,
+          isSelected: isMatch,
+          highlightColor: weekdayColors[eventDayOfWeek],
+          // Add debug info to see days in the nodes
+          debugDate: eventDayName,
+          time: format(startDate, 'h:mm a')
+        },
+        position: { x: 0, y: 0 },
+        sourcePosition: 'bottom',
+        targetPosition: 'top',
+      });
+
+      genEdges.push({
+        id: `e-${parentId}-${id}`,
+        source: parentId,
+        target: id,
+        type: 'default',
+      });
+
+      seen[id] = label;
+    });
+
+    const laid = layoutNodes(genNodes, genEdges);
+    setNodes(laid);
+    setEdges(genEdges);
+    saveSnapshot(laid, genEdges);
+    
+    // Update debug info
+    setDebugInfo(`Selected day: ${new Date(selectedDate).toLocaleDateString('en-US', { weekday: 'long' })}, Events: ${rawEvents.length}`);
+    
+  }, [icsRaw, rootLabel]);
+
+  // Function to update node selection based on day of week
+  const updateNodeSelection = (date) => {
+    console.log("Updating node selection for date:", date);
+    const selectedDayOfWeek = getDayOfWeek(date);
+    const selectedDayName = new Date(date).toLocaleDateString('en-US', { weekday: 'long' });
+    
+    setNodes((nds) =>
+      nds.map((n) => {
+        if (n.type !== 'class') return n;
+        
+        const eventDate = parseISO(n.data.start);
+        const eventDayOfWeek = getDayOfWeek(eventDate);
+        const isMatch = eventDayOfWeek === selectedDayOfWeek;
+        
+        // Debug
+        if (n.data.label) {
+          debugDates(eventDate, date, isMatch);
+        }
+        
+        return {
+          ...n,
+          data: {
+            ...n.data,
+            isSelected: isMatch,
+            highlightColor: weekdayColors[eventDayOfWeek],
+            debugDate: eventDate.toLocaleDateString('en-US', { weekday: 'long' }),
+            time: format(eventDate, 'h:mm a')
+          },
+        };
+      })
+    );
+    
+    // Update debug info
+    setDebugInfo(`Selected day: ${selectedDayName}`);
+  };
+
+  // Handle date changes
+  useEffect(() => {
+    updateNodeSelection(selectedDate);
+  }, [selectedDate]);
+
+  // Ctrl+Z undo
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.key === 'z') {
+        e.preventDefault();
+        history.current.pop(); // drop current
+        const prev = history.current.pop(); // get last snapshot
+        if (prev) {
+          setNodes(prev.nodes);
+          setEdges(prev.edges);
+          // After restoring, update selection based on current date
+          setTimeout(() => updateNodeSelection(selectedDate), 100);
+        }
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [selectedDate]);
+
+  // Reset layout
+  const resetLayout = () => {
+    localStorage.removeItem('schedule-state');
+    window.location.reload();
+  };
+
+  // Force update - helper button for debugging
+  const forceUpdateSelection = () => {
+    updateNodeSelection(selectedDate);
   };
 
   return (
-    <div className="flex h-[90vh] bg-gray-900 text-white">
-      {/* Sidebar */}
-      <aside className={`transition-all duration-500 ${collapsed ? 'w-16' : 'w-64'} bg-gray-800 p-4 shadow-lg flex flex-col overflow-hidden`}>
-        <div className={`flex ${collapsed ? 'justify-center' : 'justify-end'} mb-6`}>
-          <button className="text-yellow-400 hover:text-white" onClick={() => setCollapsed(!collapsed)}>
-            {collapsed ? <MenuIcon size={24} /> : <ArrowLeftIcon size={24} />}
+    <div className="h-screen w-full bg-gray-900 text-white p-4">
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-xl font-bold">Schedule Viewer</h2>
+        <div className="flex items-center space-x-2">
+          <label htmlFor="date-picker">Highlight Day:</label>
+          <input
+            id="date-picker"
+            type="date"
+            value={selectedDate}
+            onChange={(e) => setSelectedDate(e.target.value)}
+            className="px-2 py-1 rounded bg-gray-700"
+          />
+          <div className="bg-gray-700 px-2 py-1 rounded">
+            {new Date(selectedDate).toLocaleDateString('en-US', { weekday: 'long' })}
+          </div>
+          <button
+            className="bg-blue-600 px-4 py-2 rounded hover:bg-blue-700"
+            onClick={forceUpdateSelection}
+          >
+            Update
+          </button>
+          <button
+            className="bg-red-600 px-4 py-2 rounded hover:bg-red-700"
+            onClick={resetLayout}
+          >
+            Reset
           </button>
         </div>
+      </div>
+      
+      {/* Debug info display */}
+      <div className="bg-gray-800 p-2 mb-2 rounded text-xs">
+        {debugInfo}
+      </div>
 
-        <ul className="space-y-2">
-          <li className={`flex items-center px-3 py-2 rounded-md cursor-pointer transition-all hover:bg-yellow-500 hover:text-black ${isUploading ? 'opacity-50 pointer-events-none' : ''} ${collapsed ? 'justify-center' : ''}`} onClick={handleFileUploadClick}>
-            <div className="w-10 h-10 flex items-center justify-center shrink-0"><UploadIcon size={24} /></div>
-            {!collapsed && <span className="ml-2">{isUploading ? 'Uploading...' : 'Upload'}</span>}
-          </li>
-
-          <li className={`flex items-center px-3 py-2 rounded-md cursor-pointer transition-all hover:bg-yellow-500 hover:text-black ${collapsed ? 'justify-center' : ''}`} onClick={handleCreateClick}>
-            <div className="w-10 h-10 flex items-center justify-center shrink-0"><PlusIcon size={24} /></div>
-            {!collapsed && <span className="ml-2">Create</span>}
-          </li>
-        </ul>
-      </aside>
-
-      {/* Main Workspace */}
-      <main className="flex-1 h-full relative">
-        <WorkspaceFlow ref={flowRef} nodes={nodes} edges={edges} />
-        <input type="file" accept=".ics" ref={fileInputRef} onChange={handleFileChange} className="hidden" />
-
-        {/* Modal */}
-        {showModal && (
-          <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white text-black p-6 rounded-lg shadow-xl w-96">
-              <h2 className="text-xl font-bold mb-4">Create a New Node</h2>
-              <input
-                type="text"
-                placeholder="Enter node label"
-                className="w-full border p-2 rounded mb-4"
-                value={newNodeLabel}
-                onChange={(e) => setNewNodeLabel(e.target.value)}
-              />
-              <label className="block mb-2 font-semibold">Type:</label>
-              <select
-                value={newNodeType}
-                onChange={(e) => setNewNodeType(e.target.value)}
-                className="w-full border p-2 rounded mb-4"
-              >
-                <option value="default">Default</option>
-                <option value="important">Important</option>
-                <option value="optional">Optional</option>
-              </select>
-
-              <div className="flex justify-end gap-2">
-                <button className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400" onClick={() => setShowModal(false)}>Cancel</button>
-                <button className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700" onClick={handleCreateSubmit}>Create</button>
-              </div>
-            </div>
-          </div>
-        )}
-      </main>
+      <div className="h-[85%] border border-gray-700 rounded bg-gray-800">
+        <ReactFlow
+          nodes={nodes}
+          edges={edges}
+          nodeTypes={nodeTypes}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          onConnect={(p) => {
+            saveSnapshot(nodes, edges);
+            const ups = addEdge({ ...p, type: 'default' }, edges);
+            setEdges(ups);
+          }}
+          onNodeDragStart={() => saveSnapshot(nodes, edges)}
+          onEdgeUpdate={(oldE, newC) => {
+            saveSnapshot(nodes, edges);
+            const ups = edges
+              .filter((e) => e.id !== oldE.id)
+              .concat({ ...newC, id: `e-${newC.source}-${newC.target}`, type: 'default' });
+            const rel = layoutNodes(nodes, ups);
+            setNodes(rel);
+            setEdges(ups);
+          }}
+          onEdgeUpdateEnd={(_, edge) =>
+            setEdges((eds) => eds.filter((e) => e.id !== edge.id))
+          }
+          connectionLineType={ConnectionLineType.Bezier}
+          connectionLineStyle={{ stroke: 'cyan', strokeWidth: 2 }}
+          fitView
+          className="bg-gray-900"
+        >
+          <Background color="#444" gap={16} />
+          <Controls />
+        </ReactFlow>
+      </div>
     </div>
   );
-};
-
-export default Workspace;
+}
