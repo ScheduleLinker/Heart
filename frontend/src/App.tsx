@@ -2,7 +2,8 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import RootLayout from './components/layouts/RootLayout';
 import ActionButtons from './components/features/FileUpload/ActionButtons';
-import Workspace from "./components/features/Workspace/Workspace";
+//import Workspace from "./components/features/Workspace/Workspace";
+import WorkspaceSwitcher from './components/features/Workspace/WorkspaceSwitcher';
 export default function App() {
   
   return (
@@ -10,7 +11,7 @@ export default function App() {
       <Routes>
       <Route path="/" element={<RootLayout><ActionButtons /></RootLayout>} /> {/*default route*/ }
         <Route path="/upload" element={<RootLayout><ActionButtons /></RootLayout>} />
-        <Route path="/workspace" element={<RootLayout><Workspace /></RootLayout>} />
+        <Route path="/workspace" element={<RootLayout><WorkspaceSwitcher /></RootLayout>} />
 
         
       </Routes>

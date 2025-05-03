@@ -1,4 +1,5 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import { format } from 'date-fns';
 import dagre from 'dagre';
 import { 
   ReactFlow, 
@@ -23,7 +24,15 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Calendar } from '@/components/ui/calendar';
 
+
+
+/* 
+  This Advanced Workspace gives the user more customizeable and detailed node layoout
+  and nodes are groped in by a dates using a date picker. 
+
+*/
 
 function BubbleColor({ data }) {
   const startHour = Number(String(data.start).substring(16, 18));
@@ -88,7 +97,7 @@ function BubbleColor({ data }) {
   return startColor + endColor;
 }
 
-// 🌐 Bubble node component
+
 const BubbleNode = ({ data }) => (
   <div className={"bg-gradient-to-b " + BubbleColor({ data }) + " w-25 h-25 rounded-full text-black flex items-center justify-center shadow-lg text-sm text-center"}>
     <Handle type="target" position={Position.Top} className="w-2 h-2 bg-black" connectable={true} />
@@ -139,22 +148,24 @@ function generateBubbleNode(event, index) {
   };
 }
 
-// function updateEdge(oldEdge, newConnection, edges) {
-//   return edges.map((edge) =>
-//     edge.id === oldEdge.id
-//       ? {
-//           ...edge,
-//           source: newConnection.source,
-//           target: newConnection.target,
-//           sourceHandle: newConnection.sourceHandle,
-//           targetHandle: newConnection.targetHandle,
-//         }
-//       : edge
-//   );
-// }
+
+function groupEventsByDate(events) {
+  const groups = {};
+  events.forEach((event, i) => {
+    const dateKey = format(new Date(event.start), 'MM-dd-yyyy');
+    if (!groups[dateKey]) groups[dateKey] = [];
+    groups[dateKey].push({
+      ...event,
+      id: `event-${i}`,
+      start: new Date(event.start),
+      end: new Date(event.end),
+    });
+  });
+  return groups;
+}
 
 
-const Workspace = () => {
+const advancedWorkspace = () => {
   const uploadedData = localStorage.getItem("parsed-ics");
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges] = useState([]);
@@ -162,6 +173,22 @@ const Workspace = () => {
   const [newBubbleLabel, setNewBubbleLabel] = useState("");
   const [edgeType, setEdgeType] = useState<'straight' | 'step' | 'smoothstep' | 'default'>('straight');
 
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+
+
+  const { grouped, availableDates } = useMemo(() => {
+    if (!uploadedData) return { grouped: {}, availableDates: [] };
+  
+    const parsedJson = JSON.parse(uploadedData);
+    if (!Array.isArray(parsedJson) || !parsedJson[0]?.data?.events) {
+      return { grouped: {}, availableDates: [] };
+    }
+  
+    const grouped = groupEventsByDate(parsedJson[0].data.events);
+    const availableDates = Object.keys(grouped).sort();
+    return { grouped, availableDates };
+  }, [uploadedData]);
+  
 
   const onEdgesChange = useCallback(
     (changes) => setEdges((nds) => applyEdgeChanges(changes, nds)),
@@ -172,11 +199,7 @@ const Workspace = () => {
     setEdges((eds) => addEdge(connection, eds));
   }, []);
 
-  // const onEdgeUpdate = useCallback(
-  //   (oldEdge, newConnection) =>
-  //     setEdges((eds) => updateEdge(oldEdge, newConnection, eds)),
-  //   []
-  // );
+
 
   const handleConfirmCreate = () => {
     if (!newBubbleLabel.trim()) return;
@@ -214,6 +237,42 @@ const Workspace = () => {
       setShowCreateDialog(true);
     }
   };
+
+  useEffect(() => {
+    if (!selectedDate) return;
+  
+    const formatted = format(selectedDate, 'MM-dd-yyyy');
+    const selectedEvents = grouped[formatted];
+    if (!selectedEvents) {
+      setNodes([]);
+      setEdges([]);
+      return;
+    }
+  
+    const allNodes = selectedEvents.map((event, i) =>
+      generateBubbleNode(event, `${formatted}-${i}`)
+    );
+  
+    const newEdges = [];
+  
+    for (let i = 0; i < allNodes.length; i++) {
+      const current = allNodes[i];
+      for (let j = i - 1; j >= 0; j--) {
+        if (allNodes[j].data.end <= current.data.start) {
+          newEdges.push({
+            id: `e-${allNodes[j].id}-${current.id}`,
+            source: allNodes[j].id,
+            target: current.id,
+          });
+          break;
+        }
+      }
+    }
+  
+    const laidOut = layoutNodes(allNodes, newEdges);
+    setNodes(laidOut);
+    setEdges(newEdges);
+  }, [selectedDate, grouped]);
 
   useEffect(() => {
     if (nodes.length > 0) {
@@ -292,64 +351,42 @@ const Workspace = () => {
   }, [uploadedData]);
 
   return (
-    <>
-      <SidebarComponent onCreateBubble={createBubble} />
-      <div className="relative min-h-screen p-4 bg-gray-100 dark:bg-gray-900 flex">
-        <div className="h-[calc(100vh-2rem)] flex-1 border rounded bg-white dark:bg-gray-800 overflow-hidden relative">
-          {uploadedData ? (
-            <>
-              <div className="flex gap-4 items-center mb-2">
-                <label className="text-sm font-medium">Edge Type:</label>
-                <select
-                  value={edgeType}
-                  onChange={(e) => setEdgeType(e.target.value as typeof edgeType)}
-                  className="p-2 border rounded"
-                >
-                  <option value="default">default</option>
-                  <option value="straight">straight</option>
-                  <option value="step">step</option>
-                  <option value="smoothstep">smoothstep</option>
-                </select>
-              </div>
-  
-              <ReactFlow
-                nodes={nodes}
-                edges={edges}
-                onNodesChange={onNodesChange}
-                onEdgesChange={onEdgesChange}
-                onConnect={onConnect}
-                defaultEdgeOptions={{ type: edgeType, animated: true }}
-                fitView
-                nodeTypes={nodeTypes}
-              >
-                <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-                  <DialogContent className="sm:max-w-md">
-                    <DialogHeader>
-                      <DialogTitle>Name your new bubble</DialogTitle>
-                    </DialogHeader>
-                    <Input
-                      placeholder="Enter bubble name"
-                      value={newBubbleLabel}
-                      onChange={(e) => setNewBubbleLabel(e.target.value)}
-                    />
-                    <DialogFooter>
-                      <Button onClick={handleConfirmCreate}>Create</Button>
-                    </DialogFooter>
-                  </DialogContent>
-                </Dialog>
-  
-                <Controls />
-                <Background />
-              </ReactFlow>
-            </>
-          ) : (
-            <p className="text-gray-500 dark:text-gray-400 p-4">No data uploaded yet</p>
-          )}
-        </div>
-      </div>
-    </>
+    <div className="relative min-h-screen p-4 bg-gray-100 dark:bg-gray-900">
+      {uploadedData ? (
+        <>
+          <div className="mb-4">
+            <label className="block mb-2 text-gray-700 dark:text-gray-300">Select Date:</label>
+            <Calendar 
+              mode="single" 
+              selected={selectedDate} 
+              onSelect={setSelectedDate}
+              disabled={(date) => {
+                const formatted = format(date, 'MM-dd-yyyy');
+                return !availableDates.includes(formatted);
+              }}
+              className="border rounded-md p-2 bg-white dark:bg-gray-800"
+            />
+          </div>
+
+
+          <div className="h-[700px] border rounded bg-white dark:bg-gray-800">
+            <ReactFlow
+              nodes={nodes}
+              edges={edges}
+              fitView
+              nodeTypes={nodeTypes}
+            >
+              
+              <Controls />
+              <Background />
+            </ReactFlow>
+          </div>
+        </>
+      ) : (
+        <p className="text-gray-500 dark:text-gray-400">No data uploaded yet</p>
+      )}
+    </div>
   );
-  
 };
 
-export default Workspace;
+export default advancedWorkspace;
