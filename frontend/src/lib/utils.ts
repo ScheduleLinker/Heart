@@ -42,7 +42,6 @@ export const FileUploadHandler = async (isFileArray:File | File[]) => {
 
   } catch (error) {
     console.error("Upload Error: ", error);
-    alert("Failed to upload the file. Please try again.");
   }
 };
 
