@@ -10,7 +10,7 @@ services:
   # ─── Frontend (Static Site) ────────────────────────────────────
   - type: web
     name: heart-frontend
-    env: static
+    runtime: static
     plan: free
     rootDir: frontend
     buildCommand: "npm install && npm run build"
