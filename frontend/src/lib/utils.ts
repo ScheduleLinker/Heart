@@ -29,7 +29,6 @@ export const FileUploadHandler = async (isFileArray:File | File[]) => {
       method: "POST",
       body: formData,
     });
-
     if (!response.ok) {
       throw new Error(`Upload failed with status ${response.status}`);
     }

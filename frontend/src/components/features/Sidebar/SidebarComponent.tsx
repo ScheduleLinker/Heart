@@ -1,5 +1,5 @@
 // src/components/SidebarComponent.tsx
-import React, { useRef, useState, ChangeEvent } from "react";
+import { useRef, useState, ChangeEvent } from "react";
 import {
   Sidebar,
   SidebarContent,
@@ -28,7 +28,7 @@ interface SidebarComponentProps {
 const items = [
   { title: "Upload", icon: UploadIcon, action: "upload" },
   { title: "Create Bubble", icon: CirclePlusIcon, action: "openModal" },
-  { title: "Settings", icon: SettingsIcon, action: () => {} },
+  // { title: "Settings", icon: SettingsIcon, action: () => {} },
 ];
 
 export default function SidebarComponent({

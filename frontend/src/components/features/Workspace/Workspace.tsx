@@ -1,5 +1,5 @@
 // src/lib/Workspace.tsx
-import React, { useEffect, useRef, useState } from "react";
+import  { useEffect, useRef, useState } from "react";
 import ReactFlow, {
   Background,
   Controls,
@@ -10,6 +10,7 @@ import ReactFlow, {
   Edge,
   ConnectionLineType,
   MiniMap,
+  Position,
 } from "reactflow";
 import dagre from "dagre";
 import "reactflow/dist/style.css";
@@ -99,8 +100,8 @@ export default function Workspace() {
         type: "root",
         data: { label: `Schedule ${letter}`, setLabel: () => {} },
         position: { x: 0, y: 0 },
-        sourcePosition: "bottom",
-        targetPosition: "top",
+        sourcePosition: Position.Bottom,
+        targetPosition: Position.Top,
       });
 
       const events = icsObj.data?.events;
@@ -125,8 +126,8 @@ export default function Workspace() {
             time: format(parseISO(startIso), "h:mm a"),
           },
           position: { x: 0, y: 0 },
-          sourcePosition: "bottom",
-          targetPosition: "top",
+          sourcePosition: Position.Bottom,
+          targetPosition: Position.Top,
         });
 
         genEdges.push({
@@ -181,7 +182,8 @@ export default function Workspace() {
 
   // reset layout
   const resetLayout = () => {
-    localStorage.removeItem("schedule-state");
+    // localStorage.removeItem("schedule-state");
+    localStorage.clear();
     window.location.reload();
   };
 
@@ -249,8 +251,8 @@ export default function Workspace() {
               type: "root",
               data: { label, setLabel: () => {} },
               position: { x: 0, y: 0 },
-              sourcePosition: "bottom",
-              targetPosition: "top",
+              sourcePosition: Position.Bottom,
+              targetPosition: Position.Top,
             };
             setNodes((nds) => layoutNodes([...nds, newRoot], edges));
           } else {
@@ -267,13 +269,13 @@ export default function Workspace() {
                 time: format(new Date(), "h:mm a"),
               },
               position: { x: 0, y: 0 },
-              sourcePosition: "bottom",
-              targetPosition: "top",
+              sourcePosition: Position.Bottom,
+              targetPosition: Position.Top,
             };
             setNodes((nds) => layoutNodes([...nds, newChild], edges));
           }
         }}
-        onUpload={(parsedJson) => {
+        onUpload={(parsedJson: any) => {
           localStorage.setItem("parsed-ics", JSON.stringify(parsedJson));
           setIcsRaw(JSON.stringify(parsedJson));
         }}

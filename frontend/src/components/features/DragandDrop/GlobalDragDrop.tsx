@@ -15,7 +15,7 @@ export default function GlobalDragDrop({
   dropPromptText = "Release to Upload"
 }: GlobalDragDropProps) {
   const [isDragging, setIsDragging] = useState(false);
-  const [dragCounter, setDragCounter] = useState(0);
+  const [, setDragCounter] = useState(0);
   const [files, setFiles] = useState<File[]>([]);
   const [error, setError] = useState<string | null>(null);
   //navigate to the next screen

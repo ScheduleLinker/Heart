@@ -1,5 +1,4 @@
 // GlobalDragDrop.test.tsx
-import React from 'react';
 import { render, fireEvent, waitFor, screen } from '@testing-library/react';
 import GlobalDragDrop from './GlobalDragDrop';
 import { MemoryRouter } from 'react-router-dom';
