@@ -6,7 +6,7 @@ services:
     plan: starter
     autoDeploy: true
 
-  - type: static
+  - type: static_site
     name: heart-frontend
     env: static
     rootDir: frontend
