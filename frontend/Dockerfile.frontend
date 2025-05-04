@@ -4,7 +4,7 @@ WORKDIR /app
 
 # 1) copy manifest and install deps
 COPY package.json package-lock.json ./
-RUN npm ci
+RUN npm install
 
 # 2) copy source and build into /app/dist
 COPY . .
