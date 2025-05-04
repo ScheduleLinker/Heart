@@ -1,16 +1,18 @@
 services:
-  # ─── Backend ─────────────────────────────────────────────────────────
+  # ─── Backend (still a Docker service) ──────────────────────────────
   - type: web
-    name: heart-backend
     runtime: docker
-    plan: free
+    name: heart-backend
+    plan: starter
     dockerfilePath: backend/Dockerfile.backend
     autoDeploy: true
 
-  # ─── Frontend ────────────────────────────────────────────────────────
-  - type: web
+  # ─── Frontend (as a Static Site) ─────────────────────────────────
+  - type: static_site
     name: heart-frontend
-    runtime: docker
+    env: static
     plan: free
-    dockerfilePath: frontend/Dockerfile.frontend
+    rootDir: frontend
+    buildCommand: "npm install && npm run build"
+    staticPublishPath: dist
     autoDeploy: true
