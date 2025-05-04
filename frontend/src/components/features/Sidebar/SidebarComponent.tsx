@@ -20,7 +20,10 @@ import {
 } from "@/components/ui/Dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { useNavigate } from 'react-router-dom';
 
+// inside your component…
+const navigate = useNavigate();
 interface SidebarComponentProps {
   onCreateNode: (name: string, role: "root" | "child") => void;
 }
@@ -86,7 +89,7 @@ export default function SidebarComponent({
 
       // Persist and reload so Workspace re‐builds
       localStorage.setItem("parsed-ics", JSON.stringify(arr));
-      window.location.reload();
+      navigate('/workspace');
     } catch (err) {
       console.error("Upload Button from Sidebar failed:", err);
       alert("Upload failed. Please try again!");
