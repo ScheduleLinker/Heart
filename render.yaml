@@ -5,12 +5,9 @@ services:
     dockerfilePath: backend/Dockerfile
     plan: starter
     autoDeploy: true
-
-  - type: static_site
-  
+  - type: static
     name: heart-frontend
-    env: static
-    rootDir: frontend
     buildCommand: "npm install && npm run build"
-    publishPath: dist
+    publishDir: dist
+    rootDir: frontend
     autoDeploy: true
