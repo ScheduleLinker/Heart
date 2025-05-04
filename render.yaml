@@ -1,20 +1,20 @@
 services:
+  # ─── Backend ─────────────────────────────────────────────────────────
   - type: web
     name: heart-backend
-    env: docker
-    dockerfilePath: backend/Dockerfile.backend
+    runtime: docker
     plan: free
+    dockerfilePath: backend/Dockerfile.backend
     autoDeploy: true
+    # (optional) if your app needs env vars:
     envVars:
-      - key: NODE_ENV
-        value: production
-  
+      - key: SECRET_KEY
+        fromDatabase: SECRET_KEY
+
+  # ─── Frontend ────────────────────────────────────────────────────────
   - type: web
     name: heart-frontend
-    env: docker
-    dockerfilePath: frontend/Dockerfile.frontend
+    runtime: docker
     plan: free
+    dockerfilePath: frontend/Dockerfile.frontend
     autoDeploy: true
-    envVars:
-      - key: NODE_ENV
-        value: production
