@@ -1,13 +1,13 @@
 services:
-  # ─── Backend (still a Docker service) ──────────────────────────────
+  # ─── Backend (Docker Web Service) ───────────────────────────────
   - type: web
-    runtime: docker
     name: heart-backend
+    runtime: docker
     plan: starter
     dockerfilePath: backend/Dockerfile.backend
     autoDeploy: true
 
-  # ─── Frontend (as a Static Site) ─────────────────────────────────
+  # ─── Frontend (Static Site) ────────────────────────────────────
   - type: static_site
     name: heart-frontend
     env: static
