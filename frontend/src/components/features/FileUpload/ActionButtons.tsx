@@ -18,7 +18,7 @@ const ActionButtons = () => {
             dropPromptText="Release to Upload"
             showFileList={true}>
             <FileUploadButton />
-            <CreateButton />
+           {/* // <CreateButton /> */}
           </GlobalDragDrop>
         </div>
       </div>

@@ -1,0 +1,19 @@
+# ─── STAGE 1: build your React app ─────────────────────────────────
+FROM node:22-alpine AS builder
+WORKDIR /app
+
+# 1) copy manifest and install deps
+COPY package.json package-lock.json ./
+RUN npm ci
+
+# 2) copy source and build into /app/dist
+COPY . .
+RUN npm run build
+
+# ─── STAGE 2: serve the static files ────────────────────────────────
+FROM nginx:stable-alpine
+# copy the output of stage “builder” into nginx’s html folder
+COPY --from=builder /app/dist /usr/share/nginx/html
+
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]
