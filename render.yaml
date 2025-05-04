@@ -9,4 +9,6 @@ services:
     name: heart-frontend
     env: docker
     dockerfilePath: frontend/Dockerfile.frontend
+    plan: starter
+    port: 80
     autoDeploy: true
