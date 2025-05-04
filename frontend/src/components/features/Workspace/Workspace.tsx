@@ -184,7 +184,6 @@ export default function Workspace() {
   const resetLayout = () => {
     // localStorage.removeItem("schedule-state");
     localStorage.clear();
-    window.location.reload();
   };
 
   return (
