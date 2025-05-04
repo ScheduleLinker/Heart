@@ -8,9 +8,9 @@ services:
     autoDeploy: true
 
   # ─── Frontend (Static Site) ────────────────────────────────────
-  - type: static
+  - type: static_site
     name: heart-frontend
-    runtime: static
+    env: static
     plan: free
     rootDir: frontend
     buildCommand: "npm install && npm run build"
