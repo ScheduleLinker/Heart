@@ -6,10 +6,6 @@ services:
     plan: free
     dockerfilePath: backend/Dockerfile.backend
     autoDeploy: true
-    # (optional) if your app needs env vars:
-    envVars:
-      - key: SECRET_KEY
-        fromDatabase: SECRET_KEY
 
   # ─── Frontend ────────────────────────────────────────────────────────
   - type: web
