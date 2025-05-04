@@ -2,12 +2,11 @@ services:
   - type: web
     name: heart-backend
     env: docker
-    dockerfilePath: backend/Dockerfile
+    dockerfilePath: backend/Dockerfile.backend
     plan: starter
     autoDeploy: true
-  - type: static
+  - type: web
     name: heart-frontend
-    buildCommand: "npm install && npm run build"
-    publishDir: dist
-    rootDir: frontend
+    env: docker
+    dockerfilePath: frontend/Dockerfile.frontend
     autoDeploy: true
