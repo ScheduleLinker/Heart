@@ -8,7 +8,7 @@ services:
     autoDeploy: true
 
   # ─── Frontend (Static Site) ────────────────────────────────────
-  - type: static_site
+  - type: web
     name: heart-frontend
     env: static
     plan: free
