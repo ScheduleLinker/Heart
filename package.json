@@ -1,4 +1,9 @@
 {
+  "name": "Linked",
+  "version": "1.0.0",
+  "scripts": {
+    "build": "npm --prefix frontend run build"
+  },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.2.0",
