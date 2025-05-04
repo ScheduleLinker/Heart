@@ -1,0 +1,23 @@
+services:
+  # ─── Backend (Docker Web Service) ───────────────────────────────
+  - type: web
+    name: heart-backend
+    runtime: docker
+    plan: starter
+    dockerfilePath: backend/Dockerfile.backend
+    autoDeploy: true
+
+  # ─── Frontend (Static Site—always free) ──────────────────────────
+  - type: web
+    name: heart-frontend
+    runtime: static
+    rootDir: frontend
+    buildCommand: "npm install && npm run build"
+    staticPublishPath: dist
+    autoDeploy: true
+
+
+      # 2️⃣ Catch‑all for client‑side routes—serve index.html
+  - type: rewrite
+    source: /*
+    destination: /index.html
