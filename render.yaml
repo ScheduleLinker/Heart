@@ -19,3 +19,8 @@ services:
     envVars:
       - key: VITE_BACKEND_URL
         value: "https://heart-backend-egtw.onrender.com"
+    
+    routes:
+      - type: rewrite
+        source: /api/*
+        destination: https://heart-backend-xxxxx.onrender.com/api/*
