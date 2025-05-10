@@ -15,7 +15,16 @@ export default defineConfig({
       '@components': path.resolve(__dirname, './src/components'),
     },
   },
-  // idk why this is highlighted, ill look into it. for now it is working 
+  // idk why this is highlighted, ill look into it. for now it is working
+  build: {
+    rollupOptions: {
+      external: [
+        'react',
+        'react-dom',
+        'react-router-dom'
+      ]
+    }
+  }, 
   test: {
     globals: true,
     environment: 'jsdom',
