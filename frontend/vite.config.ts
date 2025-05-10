@@ -20,8 +20,8 @@ export default defineConfig({
       external: [
         'react',
         'react-dom',
-        'react-router-dom'
-        'reactflow'
+        'react-router-dom',
+        'reactflow',
       ]
     }
   }, 
