@@ -15,15 +15,6 @@ export default defineConfig({
       '@components': path.resolve(__dirname, './src/components'),
     },
   },
-  build: {
-    rollupOptions: {
-      external: [
-        'react',
-        'react-dom',
-        'react-router-dom'
-      ],
-    },
-  },
   test: {
     globals: true,
     environment: 'jsdom',
