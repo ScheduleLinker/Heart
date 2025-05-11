@@ -15,7 +15,8 @@ async def ics_upload(ics_files: List[UploadFile] = File(...)) -> List[UploadResp
     for i, ics_file in enumerate(ics_files):
         print(f"Received file {i+1}: {ics_file.filename} with content_type: {ics_file.content_type}")  # Debugging
 
-        if ics_file.content_type != "text/calendar":
+        if "calendar" not in ics_file.content_type and not ics_file.filename.endswith(".ics"):
+:
             response = UploadResponse(
                 uid="",
                 message=IcsUploadMessages.NotAIcs.value,
