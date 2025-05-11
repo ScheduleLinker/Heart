@@ -26,48 +26,47 @@ class EventDetails(BaseModel):
     recurrence: Optional[dict] = None
 
 # Function to parse the ICS file
-def parse_ics(ics_file: bytes) -> Tuple[str, dict]:
-    """
-    Parses an ICS file and extracts event details.
-    Handles multiple calendars and stores events in TempStorage.
-    """
+def parse_ics(file_content: bytes) -> Tuple[str, dict]:
+    from icalendar import Calendar
+    import uuid
+    from datetime import datetime
+
+    print("parse_ics() called")
+    print(f"First 100 bytes of file: {file_content[:100]}")
+
     try:
-        # Read ICS content from bytes
-        calendar = Calendar.from_ical(BytesIO(ics_file).read())
+        calendar = Calendar.from_ical(file_content)
+        events = []
 
-        events: List[dict] = []
+        print("Parsing calendar components")
+
         for component in calendar.walk():
+            print("Component name:", component.name)
             if component.name == "VEVENT":
-                raw_description = str(component.get("DESCRIPTION", "")).strip()
+                print("Found VEVENT")
+                summary = str(component.get("SUMMARY"))
+                start = component.get("DTSTART").dt
+                end = component.get("DTEND").dt
 
-                raw_rrule = component.get("RRULE", "")
-                rrule_str = raw_rrule.to_ical().decode("utf-8") if raw_rrule else ""
+                print("Summary:", summary)
+                print("Start:", start)
+                print("End:", end)
 
-
-                
-                event = EventDetails(
-                    summary=str(component.get("SUMMARY", "No Title")),
-                    description=parse_description(raw_description), # Convert to dict
-                    start=component.get("DTSTART").dt.isoformat() if component.get("DTSTART") else "N/A",
-                    end=component.get("DTEND").dt.isoformat() if component.get("DTEND") else "N/A",
-                    location=str(component.get("LOCATION", "")).strip(),
-                    recurrence=parse_recurrence(rrule_str) if rrule_str else None,
-                )
-                events.append(event.model_dump())
+                events.append({
+                    "summary": summary,
+                    "start": start.isoformat() if isinstance(start, datetime) else str(start),
+                    "end": end.isoformat() if isinstance(end, datetime) else str(end)
+                })
 
         if not events:
-            return "No events found in ICS file.", {}
+            print("No events found")
+            return "", {"error": "No events found in ICS file."}
 
-        # Convert events list to JSON inside "events" key
-        #ics_json = json.dumps({"events": events}, indent=4)
+        return str(uuid.uuid4()), {"events": events}
 
-        # Store the parsed events in TempStorage
-        temp_storage = TempStorage()  # Initialize storage
-        ics_uid = temp_storage.create({"events": events})
-        
-        return ics_uid, {"events": events} # Return dictionary instead of JSON string
     except Exception as e:
-        return f"Error parsing ICS file: {str(e)}", {}
+        print("Error parsing ICS:", str(e))
+        return "", {"error": f"Error parsing ICS file: {str(e)}"}
     
 
 def parse_description(description_str: str) -> dict:
